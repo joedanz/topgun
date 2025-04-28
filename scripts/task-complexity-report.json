@@ -1,0 +1,171 @@
+{
+  "meta": {
+    "generatedAt": "2025-04-28T00:29:36.995Z",
+    "tasksAnalyzed": 20,
+    "thresholdScore": 5,
+    "projectName": "Your Project Name",
+    "usedResearch": true
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Set up project structure and dependencies",
+      "complexityScore": 6,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the process of initializing a new project, installing dependencies, configuring the build system, setting up code quality tools, and creating the initial file and directory structure.",
+      "reasoning": "This task involves multiple setup steps across tooling, configuration, and structure. While each step is standard, the integration of several tools and ensuring a scalable structure adds moderate complexity."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implement basic flight physics with Ammo.js",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "List the steps required to design and implement arcade-style flight physics, including force modeling, control input handling, collision detection, aircraft parameterization, and physics loop integration.",
+      "reasoning": "Implementing a physics system with realistic yet arcade-style behavior, handling multiple aircraft types, and integrating with a physics engine is complex and requires careful design and testing."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Set up Three.js rendering environment",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Detail the steps to initialize a Three.js scene, configure camera and lighting, set up asset loading, implement responsive rendering, and create placeholder objects.",
+      "reasoning": "Setting up a robust rendering environment with responsive design, asset management, and device capability detection requires a good understanding of 3D graphics and web development."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Develop aircraft controller and input systems",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Enumerate the steps to implement cross-platform input systems, including desktop and mobile controls, input abstraction, sensitivity settings, and platform detection.",
+      "reasoning": "Supporting multiple input methods across platforms, normalizing controls, and providing customization options introduces significant complexity and requires thorough testing."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Create basic HUD and game UI",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the process of designing and implementing HUD elements, radar/minimap, mission indicators, scaling for different screens, and customization options.",
+      "reasoning": "While UI development is standard, integrating real-time game data, ensuring responsiveness, and supporting customization adds moderate complexity."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Implement weapon systems and combat mechanics",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "List the steps to implement multiple weapon types, projectile physics, targeting systems, feedback effects, hit detection, and weapon switching.",
+      "reasoning": "Weapon systems involve real-time physics, feedback, and balancing, making this a complex and multi-faceted task."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Develop basic enemy AI",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Detail the steps to implement AI pathfinding, combat behaviors, difficulty scaling, formation logic, state machines, and performance optimization.",
+      "reasoning": "Developing AI that behaves believably and efficiently, while integrating with the physics system, is challenging but manageable with clear subtasks."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Create mission system framework",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the creation of mission definitions, loader, state manager, objective handling, event triggers, and progress tracking.",
+      "reasoning": "Building a flexible mission system requires careful planning for extensibility and integration with game logic."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Implement first playable mission (dogfight)",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Enumerate the steps to model and texture the F-14, create the environment, implement mission logic, scoring, sound, and cross-platform testing.",
+      "reasoning": "This task combines asset creation, mission scripting, and integration, requiring coordination across disciplines."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Develop game progression system",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "List the steps to implement XP tracking, progression curves, UI for progress, persistent storage, and achievement systems.",
+      "reasoning": "Progression systems are common but require careful balancing and integration with other systems."
+    },
+    {
+      "taskId": 11,
+      "taskTitle": "Create aircraft selection and customization UI",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Detail the steps to design selection UI, info screens, customization options, loadout management, and cross-platform compatibility.",
+      "reasoning": "UI with customization and validation adds moderate complexity, especially with drag-drop and preview features."
+    },
+    {
+      "taskId": 12,
+      "taskTitle": "Implement additional mission types",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the implementation of each mission type, mission-specific UI, unique objectives, and mission selection organization.",
+      "reasoning": "Adding multiple mission types with unique mechanics and UI requires thoughtful design and testing."
+    },
+    {
+      "taskId": 13,
+      "taskTitle": "Add additional aircraft and helicopters",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "List the steps to model and texture new aircraft, implement unique flight and control systems, balance stats, and integrate with existing systems.",
+      "reasoning": "Introducing new vehicle types with unique behaviors and ensuring compatibility increases complexity."
+    },
+    {
+      "taskId": 14,
+      "taskTitle": "Implement WebSocket multiplayer foundation",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Detail the steps to set up the server, implement client-server communication, synchronization, lag compensation, security, and error handling.",
+      "reasoning": "Multiplayer networking involves real-time data exchange, synchronization, and security, making it a complex foundational task."
+    },
+    {
+      "taskId": 15,
+      "taskTitle": "Develop multiplayer lobby and matchmaking",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the implementation of lobby creation, matchmaking algorithms, friend invites, chat, room settings, and UI.",
+      "reasoning": "Lobby and matchmaking systems require real-time updates, user management, and UI integration."
+    },
+    {
+      "taskId": 16,
+      "taskTitle": "Implement multiplayer game modes",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Enumerate the steps to implement different multiplayer modes, scoring, team management, spectator features, anti-griefing, and server authority.",
+      "reasoning": "Supporting multiple multiplayer modes with fair play and robust server logic is moderately complex."
+    },
+    {
+      "taskId": 17,
+      "taskTitle": "Enhance visual effects and environment",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "List the steps to implement particle systems, dynamic lighting, weather, post-processing, LOD, and environment variations.",
+      "reasoning": "Visual enhancements are modular but require performance considerations and artistic coordination."
+    },
+    {
+      "taskId": 18,
+      "taskTitle": "Implement spatial audio system",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the setup of spatial audio, sound effects, environmental audio, mixing, and dynamic music.",
+      "reasoning": "Spatial audio adds immersion but is manageable with modern APIs and modular design."
+    },
+    {
+      "taskId": 19,
+      "taskTitle": "Create narrative campaign structure",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Detail the steps to design the campaign storyline, mission sequencing, narrative elements, progress tracking, branching paths, and campaign UI.",
+      "reasoning": "Campaign structure requires narrative design, mission integration, and progression tracking, adding moderate complexity."
+    },
+    {
+      "taskId": 20,
+      "taskTitle": "Optimize performance and implement quality settings",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "List the steps to implement quality presets, device detection, asset optimization, LOD, performance monitoring, physics optimization, and loading strategies.",
+      "reasoning": "Performance optimization is complex due to the need for cross-device compatibility, real-time adjustments, and deep integration with rendering and physics."
+    }
+  ]
+}
