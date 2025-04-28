@@ -1,0 +1,34 @@
+#hud-objectives {
+  position: fixed;
+  top: 2vw;
+  right: 4vw;
+  z-index: 2002;
+  background: rgba(0,0,0,0.35);
+  border-radius: 1vw;
+  padding: 1vw 2vw;
+  color: #fff;
+  font-family: 'Orbitron', 'Consolas', monospace;
+  font-size: 2vw;
+  min-width: 18vw;
+  max-width: 40vw;
+  box-shadow: 0 0 1vw #003c3c88;
+  pointer-events: none;
+  user-select: none;
+}
+#mission-objective {
+  font-weight: bold;
+  letter-spacing: 0.08em;
+}
+#objective-text {
+  color: #00ffcc;
+  font-weight: normal;
+}
+@media (max-width: 600px) {
+  #hud-objectives {
+    font-size: 4vw;
+    top: 1vw;
+    right: 2vw;
+    padding: 2vw 3vw;
+    min-width: 32vw;
+  }
+}

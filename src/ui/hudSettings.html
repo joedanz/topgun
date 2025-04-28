@@ -1,0 +1,112 @@
+<!-- src/ui/hudSettings.html -->
+<div id="hud-settings">
+  <label>HUD Opacity
+    <input id="hud-opacity-slider" type="range" min="0.3" max="1" step="0.01" value="0.85">
+  </label>
+  <label>HUD Size
+    <input id="hud-size-slider" type="range" min="0.7" max="1.5" step="0.01" value="1">
+  </label>
+</div>
+
+/* src/ui/hudSettings.css */
+#hud-settings {
+  position: fixed;
+  top: 2vw;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4000;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-family: 'Orbitron', 'Consolas', monospace;
+  font-size: 1.3vw;
+  border-radius: 1vw;
+  padding: 1vw 2vw;
+  box-shadow: 0 0 1vw #003c3c88;
+  display: flex;
+  gap: 2vw;
+  align-items: center;
+  pointer-events: auto;
+}
+#hud-settings label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5vw;
+}
+#hud-opacity-slider, #hud-size-slider {
+  width: 10vw;
+  accent-color: #00ffcc;
+}
+@media (max-width: 600px) {
+  #hud-settings {
+    font-size: 3vw;
+    padding: 2vw 3vw;
+    gap: 4vw;
+  }
+  #hud-opacity-slider, #hud-size-slider {
+    width: 22vw;
+  }
+}
+
+// src/ui/hudSettings.js
+/**
+ * Mounts the HUD settings panel and applies user preferences.
+ */
+export function mountHUDSettings() {
+  if (!document.getElementById('hud-settings')) {
+    fetch('src/ui/hudSettings.html')
+      .then(res => res.text())
+      .then(html => {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        document.body.appendChild(div.firstElementChild);
+        setupHUDSettings();
+      });
+  } else {
+    setupHUDSettings();
+  }
+  // Add CSS
+  if (!document.getElementById('hud-settings-css')) {
+    const link = document.createElement('link');
+    link.id = 'hud-settings-css';
+    link.rel = 'stylesheet';
+    link.href = 'src/ui/hudSettings.css';
+    document.head.appendChild(link);
+  }
+}
+
+function setupHUDSettings() {
+  const opacitySlider = document.getElementById('hud-opacity-slider');
+  const sizeSlider = document.getElementById('hud-size-slider');
+  const hudOverlay = document.getElementById('hud-overlay');
+  const radar = document.getElementById('hud-radar');
+  const objectives = document.getElementById('hud-objectives');
+  // Load from localStorage
+  const opacity = parseFloat(localStorage.getItem('hudOpacity') || '0.85');
+  const size = parseFloat(localStorage.getItem('hudSize') || '1');
+  if (opacitySlider) opacitySlider.value = opacity;
+  if (sizeSlider) sizeSlider.value = size;
+  applyHUDSettings(opacity, size);
+
+  if (opacitySlider) opacitySlider.oninput = (e) => {
+    const val = parseFloat(e.target.value);
+    localStorage.setItem('hudOpacity', val);
+    applyHUDSettings(val, sizeSlider ? parseFloat(sizeSlider.value) : 1);
+  };
+  if (sizeSlider) sizeSlider.oninput = (e) => {
+    const val = parseFloat(e.target.value);
+    localStorage.setItem('hudSize', val);
+    applyHUDSettings(opacitySlider ? parseFloat(opacitySlider.value) : 0.85, val);
+  };
+}
+
+function applyHUDSettings(opacity, size) {
+  const huds = [document.getElementById('hud-overlay'), document.getElementById('hud-radar'), document.getElementById('hud-objectives')];
+  huds.forEach(el => {
+    if (el) {
+      el.style.opacity = opacity;
+      el.style.transform = `scale(${size})`;
+      el.style.transition = 'opacity 0.2s, transform 0.2s';
+    }
+  });
+}

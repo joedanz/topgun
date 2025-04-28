@@ -1,0 +1,104 @@
+<!-- src/ui/hud.html -->
+<div id="hud-overlay">
+  <div id="hud-stats">
+    <div class="hud-row">
+      <span class="hud-label">SPD</span>
+      <span id="hud-speed" class="hud-value">000</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-label">ALT</span>
+      <span id="hud-altitude" class="hud-value">0000</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-label">AMMO</span>
+      <span id="hud-ammo" class="hud-value">--</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-label">HP</span>
+      <span id="hud-health" class="hud-value">100</span>
+    </div>
+  </div>
+</div>
+
+<!-- src/ui/hud.css -->
+#hud-overlay {
+  position: fixed;
+  top: 4vw;
+  left: 4vw;
+  z-index: 2000;
+  color: #00ffcc;
+  font-family: 'Orbitron', 'Consolas', monospace;
+  font-size: 2.5vw;
+  pointer-events: none;
+  user-select: none;
+}
+#hud-stats {
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 1vw;
+  padding: 1vw 2vw;
+  box-shadow: 0 0 1vw #003c3c88;
+  min-width: 15vw;
+}
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.7vw;
+}
+.hud-label {
+  letter-spacing: 0.18em;
+  opacity: 0.7;
+}
+.hud-value {
+  font-weight: bold;
+  letter-spacing: 0.14em;
+}
+@media (max-width: 600px) {
+  #hud-overlay {
+    font-size: 4vw;
+    top: 2vw;
+    left: 2vw;
+  }
+  #hud-stats {
+    padding: 2vw 3vw;
+    min-width: 30vw;
+  }
+}
+
+// src/ui/hud.js
+/**
+ * Updates the HUD overlay with current game stats.
+ * Call this in your main render/game loop.
+ */
+export function updateHUD({ speed = 0, altitude = 0, ammo = 0, health = 100 }) {
+  const speedEl = document.getElementById('hud-speed');
+  const altEl = document.getElementById('hud-altitude');
+  const ammoEl = document.getElementById('hud-ammo');
+  const hpEl = document.getElementById('hud-health');
+  if (speedEl) speedEl.textContent = speed.toString().padStart(3, '0');
+  if (altEl) altEl.textContent = altitude.toString().padStart(4, '0');
+  if (ammoEl) ammoEl.textContent = ammo;
+  if (hpEl) hpEl.textContent = health;
+}
+
+/**
+ * Call this once on game start to inject the HUD overlay into the DOM.
+ */
+export function mountHUD() {
+  if (!document.getElementById('hud-overlay')) {
+    fetch('src/ui/hud.html')
+      .then(res => res.text())
+      .then(html => {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        document.body.appendChild(div.firstElementChild);
+      });
+  }
+  // Add CSS
+  if (!document.getElementById('hud-css')) {
+    const link = document.createElement('link');
+    link.id = 'hud-css';
+    link.rel = 'stylesheet';
+    link.href = 'src/ui/hud.css';
+    document.head.appendChild(link);
+  }
+}
