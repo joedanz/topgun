@@ -11,33 +11,33 @@ Design a progression system with XP and unlocks. Create an aircraft selection UI
 Test progression tracking across game sessions. Verify that aircraft unlock correctly based on XP. Ensure the selection UI displays accurate information and is intuitive to use.
 
 # Subtasks:
-## 1. Implement aircraft data model and storage system [pending]
+## 1. Implement player progression data model and storage [pending]
 ### Dependencies: None
-### Description: Create the foundational data structures for aircraft and player progression tracking with persistent storage
+### Description: Create the core data structures for tracking player progression, XP, and aircraft unlock status with LocalStorage persistence
 ### Details:
-Define a comprehensive aircraft data model with properties including: id, name, category (fighter/bomber/helicopter), specifications (speed, armor, weapons, maneuverability), unlock requirements (XP level, prerequisites), and visual assets. Implement the LocalStorage persistence layer to save and load player progression data including: XP, unlocked aircraft, and achievements. Create utility functions for data access, updates, and synchronization between memory and storage.
+Design and implement a data model that tracks: player XP/level, unlocked aircraft IDs, achievement progress, and other progression metrics. Create functions to load/save this data to LocalStorage. Include methods for updating XP, checking unlock requirements, and persisting changes. Implement error handling for storage failures and data validation to prevent corruption. This foundation will support all other progression features.
 
-## 2. Develop XP and progression tracking system [pending]
+## 2. Create aircraft data model with categories and specifications [pending]
 ### Dependencies: 11.1
-### Description: Create the core progression mechanics that track player XP and determine aircraft unlock status
+### Description: Develop the data structure for all aircraft including their categories, stats, and unlock requirements
 ### Details:
-Implement an XP system with leveling mechanics (XP thresholds for each level). Create functions to award XP for various player achievements. Develop the unlock validation logic that checks if a player meets requirements for specific aircraft (based on XP level, completed achievements, and prerequisite aircraft). Add event listeners for progression-related events and ensure all progression changes persist to storage. Include methods to query unlock status for any aircraft.
+Define a comprehensive aircraft data model with properties for: unique ID, name, category (fighter/bomber/helicopter), specifications (speed, armor, weapons, etc.), unlock requirements (XP level, achievements, prerequisites), visual assets paths, and description text. Implement aircraft categories as an enum or similar structure. Create a central registry of all available aircraft with their complete specifications. Include helper methods to filter aircraft by category, check unlock status against player progression data, and compare aircraft statistics.
 
-## 3. Create aircraft selection UI framework [pending]
-### Dependencies: 11.1
-### Description: Build the base UI components for the aircraft selection screen with navigation between categories
+## 3. Implement aircraft unlock and progression mechanics [pending]
+### Dependencies: 11.1, 11.2
+### Description: Create the game logic for earning XP, unlocking aircraft, and tracking achievement-based prerequisites
 ### Details:
-Design and implement the main aircraft selection screen with tabs for different categories (fighters, bombers, helicopters). Create the grid/list view of aircraft with placeholder slots for each aircraft. Implement navigation controls between categories and aircraft. Add visual states for aircraft (locked, available, selected) with appropriate styling. Ensure the UI is responsive and works across different screen sizes. At this stage, focus on structure and navigation without detailed aircraft information panels.
+Implement functions to award XP for various player actions. Create the logic to determine when aircraft unlock requirements are met based on player level, completed achievements, or other prerequisites. Develop a notification system to alert players when new aircraft become available. Add methods to track achievement progress specifically related to aircraft unlocks. Ensure all progression changes update the persistent storage implemented in subtask 1.
 
-## 4. Implement detailed aircraft information display [pending]
-### Dependencies: 11.3
-### Description: Add detailed aircraft specification panels and comparison functionality to the selection UI
+## 4. Develop aircraft selection UI with filtering and comparison [pending]
+### Dependencies: 11.2, 11.3
+### Description: Create the user interface for browsing, comparing and selecting aircraft
 ### Details:
-Create detailed information panels that display when an aircraft is selected, showing all specifications and unlock requirements. Implement visual charts/graphs for aircraft statistics (radar charts for comparing attributes). Add a comparison mode allowing players to view stats of two aircraft side by side. Include visual indicators for strengths/weaknesses compared to currently selected aircraft. For locked aircraft, clearly display the requirements needed to unlock them with progress indicators where applicable.
+Design and implement a UI that displays aircraft organized by categories. Include filtering options to show all/available/locked aircraft. Create detailed aircraft cards showing specifications and unlock requirements. Implement a comparison view to evaluate stats between multiple aircraft. Add visual indicators (icons/overlays) for locked aircraft and newly unlocked ones. Ensure the UI reflects real-time changes to unlock status. Include selection confirmation and 'set as active' functionality to choose the current aircraft.
 
-## 5. Connect progression system to UI and implement selection functionality [pending]
-### Dependencies: 11.2, 11.4
-### Description: Integrate the progression system with the UI and implement aircraft selection with feedback
+## 5. Integrate aircraft selection with game systems [pending]
+### Dependencies: 11.3, 11.4
+### Description: Connect the aircraft selection and progression system with the main game mechanics
 ### Details:
-Connect the progression tracking system to the UI to dynamically update aircraft availability. Implement the selection and confirmation flow when a player chooses an aircraft. Add visual and audio feedback for important events (unlocking new aircraft, selecting aircraft). Create notification indicators for newly unlocked aircraft. Implement tutorial elements to guide new players through the progression system. Perform comprehensive testing across the entire system to ensure proper persistence, unlock logic, and UI state management.
+Implement the logic to load the selected aircraft when starting gameplay. Create hooks for gameplay events to trigger XP gains and achievement progress. Add UI elements to display current progression status during gameplay (XP bar, level indicator). Ensure aircraft-specific capabilities affect gameplay appropriately (different handling for fighters vs. helicopters). Add a quick-select option for changing aircraft between gameplay sessions. Test the complete progression loop from earning XP to unlocking and using new aircraft.
 

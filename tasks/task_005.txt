@@ -15,29 +15,29 @@ Test controls on multiple devices and browsers. Verify that control responsivene
 ### Dependencies: None
 ### Description: Develop a platform-agnostic input system that normalizes control inputs across different devices
 ### Details:
-Design and implement an input abstraction layer that maps raw inputs (keyboard, mouse, touch, tilt, gamepad) to standardized game actions. Create interfaces for different input types and a central InputManager class that processes all inputs. Define common control actions like 'move', 'accelerate', 'brake', 'turn', etc. that will work consistently regardless of input source. This foundation will allow other control implementations to plug into a unified system.
+Design and implement an input abstraction layer that maps raw inputs (keyboard, mouse, touch, tilt, gamepad) to standardized game actions (move, aim, fire, etc.). Create interfaces/classes for InputHandler, InputMapper, and InputAction. Implement event-based architecture to handle input events consistently across platforms. Define configuration objects for different control schemes.
 
 ## 2. Implement desktop keyboard and mouse controls [pending]
 ### Dependencies: 5.1
-### Description: Add support for keyboard (WASD, arrow keys, spacebar) and mouse input for desktop browsers
+### Description: Add support for keyboard (WASD, arrow keys, spacebar) and mouse input on desktop browsers
 ### Details:
-Implement keyboard handlers for WASD and arrow keys for movement, spacebar for special actions. Add mouse control for aiming and camera manipulation. Map these inputs to the abstraction layer created in subtask 1. Include key rebinding capability in the implementation. Test responsiveness and ensure smooth control with various keyboard/mouse combinations. Implement appropriate event listeners and handle edge cases like key conflicts.
+Implement keyboard input detection for movement (WASD, arrow keys) and actions (spacebar, etc.). Add mouse support for aiming and camera control with configurable sensitivity. Create keyboard/mouse-specific input mapper that connects to the abstraction layer. Implement key rebinding functionality. Test responsiveness and ensure smooth control experience on desktop browsers.
 
-## 3. Add gamepad support for desktop browsers [pending]
+## 3. Implement mobile touch controls with virtual joysticks [pending]
 ### Dependencies: 5.1
-### Description: Implement gamepad controls using the Gamepad API for desktop browsers
+### Description: Create touch-based control system with virtual joysticks for mobile devices
 ### Details:
-Use the Gamepad API to detect and handle input from connected controllers. Map analog sticks to movement and camera controls, and buttons to actions. Implement deadzone handling for joysticks and button sensitivity. Test with multiple gamepad models (Xbox, PlayStation, generic) to ensure compatibility. Add gamepad connection/disconnection handling. Connect these inputs to the abstraction layer from subtask 1.
+Design and implement virtual joystick UI components for movement and camera/aiming. Add touch event handling for joystick interaction and action buttons. Implement multi-touch support for simultaneous movement and aiming. Create touch-specific input mapper that connects to the abstraction layer. Ensure controls are responsive and properly sized for different mobile screen sizes.
 
-## 4. Develop mobile touch and tilt controls [pending]
-### Dependencies: 5.1
-### Description: Create touch controls with virtual joysticks and optional device orientation (tilt) controls for mobile devices
+## 4. Add device orientation (tilt) controls for mobile [pending]
+### Dependencies: 5.1, 5.3
+### Description: Implement optional tilt-based controls using device orientation sensors on mobile devices
 ### Details:
-Implement virtual joysticks for movement and camera control on touchscreens. Add touch gesture recognition for special actions. Create device orientation controls using the DeviceOrientation API for tilt-based steering as an alternative control method. Handle multi-touch inputs and prevent conflicts with UI elements. Ensure controls are responsive and properly positioned for different screen sizes. Connect all mobile inputs to the abstraction layer from subtask 1.
+Add device orientation API integration to detect device tilt. Implement calibration system to set neutral position. Create sensitivity and dead zone settings for tilt controls. Build tilt-specific input mapper that connects to the abstraction layer. Add option to toggle between touch and tilt controls. Test on various mobile devices to ensure consistent behavior.
 
-## 5. Build control settings menu with customization options [pending]
-### Dependencies: 5.2, 5.3, 5.4
-### Description: Create a user interface for adjusting control settings and sensitivity across all platforms
+## 5. Create control settings menu and add gamepad support [pending]
+### Dependencies: 5.1, 5.2, 5.3, 5.4
+### Description: Build a user interface for control configuration and implement gamepad support for desktop
 ### Details:
-Design and implement a control settings menu accessible from the game. Include options for sensitivity adjustment for each control type (mouse sensitivity, touch sensitivity, tilt sensitivity, gamepad sensitivity). Add toggle options for enabling/disabling control methods (especially for mobile tilt controls). Implement control scheme switching between different presets. Create visual indicators for current control bindings. Ensure settings are saved between sessions using localStorage or other persistence methods. Test the settings menu on all supported platforms.
+Design and implement a control settings UI with options for sensitivity adjustment, control scheme selection, and key/button rebinding. Add platform-specific settings (tilt sensitivity, joystick size, etc.). Implement gamepad API integration for desktop browsers. Create gamepad-specific input mapper that connects to the abstraction layer. Add controller button mapping configuration. Test settings persistence and ensure all control methods work correctly after configuration changes.
 

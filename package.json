@@ -10,7 +10,6 @@
     "lint": "eslint src --ext .js",
     "lint:fix": "eslint src --ext .js --fix && prettier --write \"src/**/*.{js,css,md}\"",
     "prepare": "husky install",
-
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -41,5 +40,8 @@
     "webpack": "^5.99.7",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.1"
+  },
+  "dependencies": {
+    "three": "^0.176.0"
   }
 }

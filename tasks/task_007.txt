@@ -11,39 +11,39 @@ Design a modular weapon system supporting different weapon types (machine guns, 
 Test weapon firing and hit detection accuracy. Verify that projectile physics behave realistically. Ensure damage calculation works correctly and consistently.
 
 # Subtasks:
-## 1. Create modular weapon system architecture [pending]
+## 1. Create base weapon system architecture [pending]
 ### Dependencies: None
-### Description: Design and implement the base weapon system architecture that will support different weapon types
+### Description: Design and implement the core weapon system architecture with interfaces and base classes
 ### Details:
-Create a base Weapon class with common properties (damage, range, fire rate, ammo capacity). Implement derived classes for different weapon types (MachineGun, Missile, GuidedMissile). Design interfaces for weapon mounting points on aircraft. Include weapon state management (ready, firing, reloading, empty). Create a WeaponManager class to handle weapon switching and activation.
+Create a modular weapon system architecture with interfaces and abstract classes. Define the IWeapon interface with methods like Fire(), Reload(), and properties like ammoCount, cooldownTime, and damageAmount. Implement a BaseWeapon abstract class that handles common functionality. Create data structures for weapon configurations and stats. This foundation will support different weapon types in subsequent tasks.
 
-## 2. Implement projectile physics and movement [pending]
+## 2. Implement projectile physics system [pending]
 ### Dependencies: 7.1
-### Description: Create the physics-based movement system for different projectile types
+### Description: Create a physics system for different projectile types with appropriate trajectories
 ### Details:
-Implement a Projectile base class with common properties (speed, damage, lifetime). Create specialized projectile types (Bullet, Missile) with appropriate physics behaviors. Add gravity effects for ballistic trajectories. Implement air resistance and speed degradation over distance. For missiles, add thrust and acceleration properties. Create an object pooling system for projectiles to optimize performance. Implement projectile lifetime management to destroy projectiles after maximum range or time.
+Develop a projectile physics system that handles different projectile behaviors. Implement ballistic trajectories for bullets with gravity influence, straight-line paths for machine guns, and guided paths for missiles. Create a ProjectileManager to handle instantiation, pooling, and lifecycle management. Implement velocity, acceleration, and drag calculations. Ensure the system can be configured for different projectile speeds, masses, and flight characteristics.
 
-## 3. Develop hit detection and collision system [pending]
+## 3. Implement hit detection and collision system [pending]
 ### Dependencies: 7.2
-### Description: Create the systems that detect when projectiles hit aircraft or other objects
+### Description: Create the hit detection system using raycasting and collision detection
 ### Details:
-Implement raycasting for high-speed projectiles like bullets to prevent tunneling. Use colliders for slower projectiles like missiles. Create a hit registration system that tracks what was hit and where. Implement different collision layers for friendly vs. enemy projectiles. Add hit boxes with different damage multipliers for critical aircraft components (engine, cockpit, wings). Create an interface for objects that can take damage from weapons.
+Implement hit detection using a combination of raycasting for instant-hit weapons and colliders for physical projectiles. Create a HitDetectionManager that handles different detection methods. Implement collision layers to properly filter relevant collisions. Add hit information data structures to store impact point, normal, and hit object. For high-speed projectiles, implement continuous collision detection to prevent tunneling through thin objects. Test with various scenarios including moving targets.
 
-## 4. Add damage calculation and health system [pending]
-### Dependencies: 7.3
-### Description: Implement the system for calculating and applying damage to aircraft
+## 4. Develop specific weapon types [pending]
+### Dependencies: 7.1, 7.2, 7.3
+### Description: Implement concrete weapon classes for machine guns, missiles, and other weapon types
 ### Details:
-Create a health/damage system for aircraft with appropriate properties (current health, max health). Implement damage calculation based on weapon type, hit location, and distance. Add critical hit chances for specific components. Create visual damage states for aircraft (smoke, fire, trailing debris). Implement aircraft destruction sequences when health reaches zero. Add damage resistance properties for different aircraft types.
+Create concrete implementations of different weapon types inheriting from BaseWeapon: MachineGun (high fire rate, low damage), Cannon (low fire rate, high damage), Missile (guided, explosive damage), and RocketPod (multiple unguided rockets). Implement weapon-specific behaviors like spread patterns for machine guns, lock-on mechanics for guided missiles, and area damage for explosive weapons. Configure appropriate projectile types, fire rates, damage values, and ammo capacities for each weapon.
 
-## 5. Implement weapon cooldown and ammo management [pending]
-### Dependencies: 7.1
-### Description: Create systems to handle weapon firing rates, cooldowns, and ammunition
+## 5. Implement damage system and feedback effects [pending]
+### Dependencies: 7.3, 7.4
+### Description: Create the damage calculation system and visual/audio feedback for combat
 ### Details:
-Implement firing rate limitations based on weapon type. Create cooldown timers for weapons that overheat. Implement ammunition tracking and reloading mechanics. Add visual indicators for weapon status (ready, cooling, reloading, empty). Create ammo pickup or resupply mechanics if applicable. Implement different ammo types for specialized weapons. Add weapon jamming or malfunction possibilities for realism.
+Implement a damage system that calculates final damage based on weapon type, hit location (critical hits), distance, and target armor. Create visual effects for weapon firing (muzzle flashes, smoke), projectile trails, and impacts (explosions, sparks, debris). Add audio feedback for firing, flying projectiles, and impacts. Implement screen shake and controller vibration for player feedback. Create a hit marker system to indicate successful hits to the player.
 
-## 6. Add visual and audio feedback for combat [pending]
-### Dependencies: 7.2, 7.3, 7.4
-### Description: Implement the visual effects and sound for weapon firing, projectile movement, and impacts
+## 6. Implement weapon management and special weapons [pending]
+### Dependencies: 7.4, 7.5
+### Description: Create weapon cooldown, ammo management, and special weapon systems
 ### Details:
-Create muzzle flash effects for guns. Add tracer effects for bullets. Implement smoke trails for missiles. Create explosion effects for missile impacts. Add impact effects for different surface types (metal, ground, water). Implement camera shake on firing heavy weapons. Create sound effects for different weapon types, projectile movements, and impacts. Add spatial audio for 3D sound positioning. Implement hit markers or other UI feedback when successfully hitting targets.
+Implement weapon cooldown timers and heat management for continuous fire weapons. Create an ammo management system with different ammo types, reloading mechanics, and ammo displays. Implement weapon switching logic and UI. Add special weapons like guided missiles with target tracking, lock-on mechanics, and countermeasure vulnerability. Implement weapon loadout configurations and selection UI. Add weapon upgrades and modifications system to allow for player customization.
 

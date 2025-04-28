@@ -15,41 +15,41 @@ Test multiplayer synchronization with various network conditions. Verify that en
 ### Dependencies: None
 ### Description: Create the client-side networking foundation to establish and maintain connection with the multiplayer server
 ### Details:
-Implement a NetworkManager class that handles WebSocket connection establishment, reconnection logic, message serialization/deserialization, and basic error handling. Create a message protocol for client-server communication with message types for connection, disconnection, and heartbeat. Add connection status indicators in the UI and implement connection timeout handling.
+Implement a NetworkManager class that handles WebSocket connection establishment, reconnection logic, message serialization/deserialization, and basic error handling. Create a message protocol for client-server communication with message types for connection, disconnection, and heartbeat. Add connection status indicators in the UI and implement connection retry mechanisms.
 
-## 2. Develop lobby and matchmaking system [pending]
+## 2. Develop lobby system and game session management [pending]
 ### Dependencies: 15.1
-### Description: Create UI and functionality for players to create, join, and manage multiplayer game sessions
+### Description: Create UI and logic for players to browse, create, and join multiplayer game sessions
 ### Details:
-Implement a LobbyManager class to handle game room creation, joining rooms via room codes, and matchmaking requests. Create lobby UI screens including room creation form, room browser, and waiting room. Add functionality for room settings configuration (private/public, max players, game mode). Implement ready-up mechanism and countdown timer for game start when all players are ready.
+Implement a LobbyManager class to handle available games list, game creation with configurable settings, and joining existing games. Create lobby UI screens including game browser, creation form, and waiting room. Add session state synchronization to show real-time updates of players joining/leaving. Implement game start coordination and transition from lobby to gameplay.
 
-## 3. Implement entity synchronization and interpolation [pending]
+## 3. Implement entity synchronization and remote player rendering [pending]
 ### Dependencies: 15.1
-### Description: Create system for smooth representation of remote player movements and actions
+### Description: Create systems to receive and display other players' states in the game world
 ### Details:
-Develop an EntitySynchronizer class that receives position/rotation updates from the server and applies them to remote player entities. Implement interpolation algorithm to smooth movement between network updates. Create buffer system for handling out-of-order packets. Add visual indicators for connection quality issues. Implement optimization for update frequency based on entity distance and importance.
+Develop an EntitySynchronizer that processes incoming network messages about remote player positions, rotations, and states. Implement entity interpolation for smooth movement between network updates. Create visual representations for remote players with appropriate animations based on their actions. Add player identification elements like usernames and avatars above characters.
 
-## 4. Implement client-side prediction and reconciliation [pending]
+## 4. Implement client-side prediction and server reconciliation [pending]
 ### Dependencies: 15.3
-### Description: Create system for responsive local player movement with server authority
+### Description: Create a responsive local player experience with prediction and correction based on server authority
 ### Details:
-Implement input prediction system that applies player inputs locally before server confirmation. Create input buffer that stores recent inputs with timestamps. Develop reconciliation system that corrects client state when server corrections are received. Add configurable prediction parameters based on connection quality. Implement visual debugging tools to show prediction errors when they occur.
+Implement client-side prediction to immediately apply local player inputs while sending them to the server. Create a command history buffer to store recent inputs. Develop reconciliation logic to handle server corrections by replaying inputs when server state differs from predicted state. Add visual indicators for high latency or desynchronization issues.
 
-## 5. Create in-game chat and communication system [pending]
-### Dependencies: 15.1, 15.2
-### Description: Implement text and potentially voice chat functionality for player communication
+## 5. Add in-game chat and communication features [pending]
+### Dependencies: 15.2
+### Description: Implement text-based communication between players during gameplay and in lobbies
 ### Details:
-Create ChatManager class to handle sending/receiving chat messages. Implement UI for chat input, chat history with timestamps and player names. Add support for team-only and global chat channels. Implement chat notifications and unread message indicators. Add basic moderation features like muting players. Create emoji/reaction support for quick communication.
+Create a ChatManager class to handle sending and receiving chat messages. Implement UI components for chat input, message history, and notification of new messages. Add support for different chat channels (global, team, private). Implement basic moderation features like message filtering. Create visual and audio notifications for incoming messages.
 
 ## 6. Implement multiplayer UI elements and scoreboards [pending]
-### Dependencies: 15.2, 15.3
-### Description: Create UI components specific to multiplayer gameplay
+### Dependencies: 15.3
+### Description: Create UI components specific to multiplayer gameplay for player status and game progress
 ### Details:
-Develop a ScoreboardManager to track and display player statistics. Create UI for real-time scoreboard showing player names, scores, ping, and other relevant stats. Implement end-of-match results screen with detailed statistics. Add player nameplates above characters with health/status indicators. Create team indicators and objective markers for team-based game modes.
+Develop a ScoreboardManager to track and display player statistics. Create UI for in-game player list showing connected players, their status, scores, and ping. Implement end-of-match summary screens with performance statistics. Add team-based UI elements if applicable (team scores, team member status). Create notifications for game events like players joining/leaving.
 
 ## 7. Implement spectator mode and social features [pending]
-### Dependencies: 15.2, 15.3, 15.6
-### Description: Add functionality for observing games and social interaction between players
+### Dependencies: 15.2, 15.6
+### Description: Add functionality for players to observe games and interact socially with friends
 ### Details:
-Create SpectatorManager to handle spectator-specific view modes and camera controls. Implement friend invite system integrated with the lobby. Add spectator UI showing game state and player information. Create camera modes for spectating (follow player, free camera, etc). Implement replay system for watching key moments. Add social features like friend lists, recent players, and blocking functionality.
+Create a SpectatorManager to handle spectator-specific view logic and limitations. Implement camera controls for spectators to follow specific players or free-roam. Add friend system integration with invite functionality. Implement spectator chat with appropriate permissions. Create UI for spectator count and management. Add social features like adding friends from recent players list.
 

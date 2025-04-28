@@ -15,35 +15,35 @@ Test physics initialization and stability with simple objects. Verify that colli
 ### Dependencies: None
 ### Description: Set up the Ammo.js physics world with appropriate gravity settings for flight simulation
 ### Details:
-Import and initialize Ammo.js library. Create a physics world with appropriate configuration parameters. Set gravity vector to simulate Earth's gravity (typically -9.81 m/s² on Y-axis). Configure solver iterations and time step settings. Create a singleton or service class to provide global access to the physics world. Implement proper memory management to prevent leaks with Ammo.js objects.
+Import and initialize Ammo.js library. Create a physics world with appropriate configuration for aircraft simulation (lower gravity than standard Earth gravity). Set up the collision configuration, dispatcher, broadphase (preferably DbvtBroadphase for aircraft simulation), solver, and softBodySolver. Implement a singleton pattern for accessing the physics world throughout the application.
 
 ## 2. Create coordinate transformation utilities [pending]
 ### Dependencies: 3.1
-### Description: Develop utility functions for converting between Three.js and Ammo.js coordinate systems and objects
+### Description: Develop utility functions to convert between Three.js and Ammo.js coordinate systems and objects
 ### Details:
-Create functions to convert Three.js Vector3 to Ammo.js btVector3 and vice versa. Implement quaternion conversion between Three.js and Ammo.js. Develop utilities for transforming matrices between the two systems. Create helper functions to synchronize position and rotation data between Three.js meshes and Ammo.js rigid bodies. Document the coordinate system differences and conversion approaches for team reference.
+Create functions to convert Three.js Vector3 to Ammo.js btVector3 and vice versa. Implement quaternion conversion utilities between Three.js and Ammo.js. Develop functions to transform mesh geometries to Ammo.js collision shapes. Create helper functions to synchronize position and rotation of Three.js objects with their Ammo.js counterparts.
 
 ## 3. Implement rigid body creation system [pending]
 ### Dependencies: 3.1, 3.2
-### Description: Create a system for generating Ammo.js rigid bodies from Three.js objects with various collision shapes
+### Description: Create a system for generating and managing physics rigid bodies that correspond to Three.js objects
 ### Details:
-Implement functions to create rigid bodies with different collision shapes (box, sphere, cylinder, etc.). Create a factory pattern for generating physics bodies with appropriate mass, friction, and restitution properties. Develop a system to link Three.js meshes with their corresponding Ammo.js rigid bodies. Implement methods for setting initial position, rotation, and velocity of rigid bodies. Add support for both dynamic and kinematic rigid bodies.
+Develop a factory class for creating rigid bodies with different collision shapes (box, sphere, cylinder, convex hull). Implement mass and inertia calculation for aircraft components. Create a registry to track and manage all physics bodies. Implement methods to add, remove, and update rigid bodies in the physics world. Add functionality to set initial position, rotation, and motion states.
 
 ## 4. Synchronize physics and render loops [pending]
 ### Dependencies: 3.1, 3.2, 3.3
 ### Description: Create a physics update loop that synchronizes with the Three.js render loop
 ### Details:
-Implement a fixed timestep physics update function. Integrate the physics step with the Three.js animation loop. Create a system to update Three.js object positions and rotations based on physics simulation results. Implement interpolation between physics steps for smooth rendering. Add performance monitoring to ensure physics calculations don't bottleneck rendering. Create a mechanism to pause/resume physics simulation independent of rendering.
+Implement a fixed timestep physics simulation loop. Create a system to update Three.js object transforms based on physics simulation results. Handle time scaling for physics simulation. Implement interpolation between physics steps for smooth rendering. Add performance monitoring for physics calculations to ensure simulation runs at target framerate.
 
-## 5. Set up collision detection system [pending]
+## 5. Implement collision detection system [pending]
 ### Dependencies: 3.3, 3.4
-### Description: Implement collision detection with appropriate broadphase algorithm and collision callbacks
+### Description: Set up collision detection with appropriate callbacks and filtering for aircraft simulation
 ### Details:
-Configure an appropriate broadphase algorithm (DBVT is recommended for flight simulation). Implement collision filtering using collision groups and masks. Create a collision callback system to handle collision events. Develop a collision pair caching mechanism for performance optimization. Implement continuous collision detection for fast-moving objects. Create an event system to notify other components when collisions occur.
+Configure collision filtering using collision groups and masks. Implement collision callback system to handle different types of collisions (ground contact, object interactions). Create a contact point management system to track where collisions occur. Add collision event dispatching to notify other systems about physics interactions. Implement continuous collision detection for high-speed objects.
 
-## 6. Implement force application and debug visualization [pending]
+## 6. Create force application and debug visualization system [pending]
 ### Dependencies: 3.3, 3.4, 3.5
-### Description: Create systems for applying forces/torques to rigid bodies and visualizing physics objects for debugging
+### Description: Implement systems for applying aerodynamic forces and visualizing physics objects
 ### Details:
-Implement methods to apply forces and torques at specific points on rigid bodies. Create utility functions for common flight forces (lift, thrust, drag). Develop a debug visualization system to render collision shapes, forces, and constraints. Add toggleable physics debug rendering to the UI. Implement logging of physics properties (velocity, acceleration, forces) for debugging. Create a system to visualize the center of mass and inertia tensors of complex objects.
+Develop methods to apply forces and torques to rigid bodies at specific points. Create utility functions for common flight forces (lift, drag, thrust). Implement a debug rendering system to visualize collision shapes, forces, and velocities. Add toggleable physics debug visualization with different visualization modes. Create a UI panel to adjust physics parameters in real-time for testing and debugging.
 

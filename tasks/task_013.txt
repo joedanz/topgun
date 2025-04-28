@@ -11,33 +11,33 @@ Implement paint scheme customization with texture swapping. Create a call sign s
 Test customization options to ensure they apply correctly to aircraft. Verify that saved configurations persist between sessions. Ensure the customization UI is intuitive and responsive.
 
 # Subtasks:
-## 1. Implement core data structures for aircraft customization [pending]
+## 1. Implement core data structures and storage system [pending]
 ### Dependencies: None
-### Description: Create the foundational data models and storage system for aircraft customization options including paint schemes, call signs, and weapon loadouts.
+### Description: Create the foundational data structures and persistence layer for aircraft customization
 ### Details:
-Define data structures for storing customization options. Create classes for PaintScheme (with texture references), CallSign (with validation rules), WeaponLoadout (with slot definitions and weight calculations). Implement persistent storage using JSON serialization for saving/loading configurations. Set up the validation system to check if loadouts meet mission requirements based on weight limits and weapon compatibility.
+Design and implement data models for aircraft customization including paint schemes, call signs, weapon loadouts, and configurations. Create a persistence system to save/load customization data to local storage. Implement the basic validation logic for loadout weight and slot limitations. This subtask focuses on the data layer without UI components.
 
 ## 2. Develop paint scheme and texture swapping system [pending]
 ### Dependencies: 13.1
-### Description: Create the system for applying different paint schemes to aircraft models through texture swapping.
+### Description: Create the system for customizing aircraft appearance through texture swapping
 ### Details:
-Implement a TextureManager class to handle loading and swapping textures. Create a material property system that can apply textures to different parts of the aircraft model. Design a PaintSchemeApplicator that takes a PaintScheme object and applies the corresponding textures to the aircraft. Include support for different aircraft types with varying UV maps. Add a caching system to improve performance when switching between previously loaded schemes.
+Implement a texture management system that can dynamically swap aircraft textures. Create a collection of base paint schemes with appropriate texture maps. Develop the logic to apply selected textures to aircraft models at runtime. Include support for different aircraft types having their own texture sets. Test the system with various texture resolutions to ensure performance.
 
-## 3. Build weapon loadout management system [pending]
+## 3. Build weapon loadout and call sign systems [pending]
 ### Dependencies: 13.1
-### Description: Implement the system for configuring weapon loadouts with slot and weight limitations.
+### Description: Implement the functional systems for weapon loadouts and call sign customization
 ### Details:
-Create a WeaponSlotManager to handle the assignment of weapons to specific hardpoints on the aircraft. Implement weight calculation logic that updates in real-time as weapons are added/removed. Design a validation system that checks if a loadout meets mission requirements and aircraft capabilities. Create weapon preset configurations for common loadout types. Implement visual representation of weapons on the aircraft model when loadouts change. Add support for different aircraft types with varying weapon compatibility and slot configurations.
+Create the weapon loadout system with slot and weight limitations based on aircraft type. Implement the call sign system with validation and formatting rules. Develop the logic for checking if loadouts meet mission requirements. Build preset loadout configurations for different mission types. Ensure these systems properly interface with the persistence layer from subtask 1.
 
-## 4. Develop customization UI with preview capabilities [pending]
+## 4. Create customization UI with preview capabilities [pending]
 ### Dependencies: 13.2, 13.3
-### Description: Create the user interface for aircraft customization with real-time preview functionality.
+### Description: Develop the user interface for all customization options with live preview
 ### Details:
-Design and implement UI panels for paint scheme selection, call sign entry, and weapon loadout configuration. Create a 3D preview window that shows the aircraft with current customizations applied in real-time. Implement UI controls for rotating and zooming the preview model. Add visual feedback for invalid configurations (e.g., overweight loadouts). Create preset buttons for quick customization options. Implement a save/load interface for custom configurations with naming and thumbnail preview.
+Design and implement a comprehensive UI for aircraft customization. Include tabs or sections for paint schemes, call signs, and weapon loadouts. Create a 3D preview panel that shows changes in real-time. Implement UI controls for texture selection, call sign input, and weapon selection. Add visual feedback for invalid configurations (weight limits, slot restrictions). Ensure the UI is responsive and user-friendly.
 
-## 5. Implement configuration persistence and mission integration [pending]
+## 5. Implement configuration management and finalize system [pending]
 ### Dependencies: 13.4
-### Description: Create systems for saving/loading custom configurations and integrate with mission system for requirement validation.
+### Description: Complete the system with configuration presets, save/load functionality, and final integration
 ### Details:
-Implement configuration serialization/deserialization to save and load custom setups. Create a library of saved configurations with thumbnail previews. Design a mission requirements validator that checks if the current configuration meets specific mission parameters. Implement a warning system that alerts players when their configuration doesn't meet mission requirements. Add a quick-fix feature that suggests changes to meet requirements. Create an API for mission designers to specify required loadout parameters. Test the entire customization system with various aircraft types and mission scenarios.
+Implement the save/load functionality for custom configurations with appropriate naming and categorization. Create a preset system allowing quick selection of pre-defined configurations. Add import/export capabilities for sharing configurations. Implement final validation to ensure configurations meet all requirements. Integrate the complete customization system with the main game flow. Perform comprehensive testing across different aircraft types and configurations.
 

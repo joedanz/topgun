@@ -11,33 +11,33 @@ Design an analytics system to track player progression and behavior. Implement e
 Verify that analytics data is collected accurately. Test that privacy controls work correctly. Ensure telemetry doesn't impact game performance.
 
 # Subtasks:
-## 1. Design and implement core analytics data collection framework [pending]
+## 1. Design analytics data schema and collection architecture [pending]
 ### Dependencies: None
-### Description: Create the foundational architecture for collecting, storing, and transmitting gameplay data
+### Description: Define the core analytics architecture, data schema, and collection mechanisms that will be used throughout the system
 ### Details:
-Implement a singleton Analytics Manager class that handles event registration and dispatching. Create data models for different event types (gameplay, performance, errors). Design a queue system for batching events before transmission. Implement local storage for offline data collection. Ensure the system has minimal performance impact on gameplay by using asynchronous processing.
+Create a comprehensive data schema that defines what player data will be collected, including player progression metrics, gameplay actions, and performance indicators. Design the architecture for how data will be collected, stored, and processed. Include data retention policies and anonymization methods to ensure GDPR/CCPA compliance. Document the API that game systems will use to report events. Consider both offline and online data collection scenarios.
 
-## 2. Implement gameplay event tracking system [pending]
+## 2. Implement core event tracking and telemetry collection [pending]
 ### Dependencies: 19.1
-### Description: Create specific event trackers for key gameplay actions and player progression metrics
+### Description: Build the foundational systems for tracking gameplay events and collecting performance telemetry
 ### Details:
-Define standard event types for player actions (combat, movement, item usage, level completion, etc.). Implement hooks in relevant game systems to capture these events. Add player progression tracking (XP gained, levels completed, achievements unlocked). Create session tracking to measure play duration and frequency. Implement funnel analysis capabilities to track player journey through game features.
+Implement the core event tracking system based on the schema designed in subtask 1. Create event dispatchers for key gameplay actions (e.g., level completion, item acquisition, combat encounters). Add performance monitoring for critical metrics like framerate, memory usage, and load times. Implement data batching and efficient transmission to minimize performance impact. Include user opt-in/opt-out functionality for data collection with appropriate consent UI. Test the system with sample events to verify data integrity.
 
-## 3. Develop performance telemetry and crash reporting [pending]
-### Dependencies: 19.1
-### Description: Add systems to monitor game performance metrics and collect crash data
+## 3. Develop crash reporting and error tracking system [pending]
+### Dependencies: 19.2
+### Description: Create a system to capture, report, and analyze game crashes and errors
 ### Details:
-Implement frame rate monitoring and reporting. Add memory usage tracking. Create system for logging and reporting exceptions and crashes with stack traces. Implement opt-in UI for crash reporting with privacy notice. Add device information collection (OS, hardware specs, etc.). Create automatic detection of performance anomalies. Ensure all crash data is anonymized appropriately.
+Build an opt-in crash reporting system that captures stack traces, system information, and recent game state when crashes occur. Implement error boundary handlers to catch and report non-fatal errors. Create a server-side component to receive, store, and categorize crash reports. Add functionality to detect patterns in crash reports to identify common issues. Ensure all personally identifiable information is properly anonymized or excluded from reports. Include mechanisms for players to add notes to crash reports.
 
-## 4. Implement privacy compliance and data management [pending]
-### Dependencies: 19.1, 19.2, 19.3
-### Description: Ensure the analytics system complies with privacy regulations and provides proper user controls
+## 4. Implement spatial analytics and heatmap generation [pending]
+### Dependencies: 19.2
+### Description: Create systems to track and visualize spatial player data throughout the game world
 ### Details:
-Implement opt-in/opt-out functionality for all data collection. Create privacy policy text and consent UI. Add data anonymization for sensitive information. Implement data retention policies and automatic purging of old data. Create data export functionality for user data requests. Add IP anonymization. Ensure compliance with GDPR, CCPA, and other relevant privacy regulations. Document all data collection practices.
+Develop a spatial tracking system that records player positions, movement patterns, and interaction points in the game world. Implement efficient data structures for storing large volumes of spatial data. Create heatmap generation algorithms for visualizing player density, combat locations, deaths, and other key metrics. Add tools for developers to filter and analyze spatial data by player segments, time periods, and game versions. Optimize the collection system to minimize performance impact during gameplay.
 
-## 5. Create visualization dashboard and heatmap generation [pending]
+## 5. Create analytics dashboard and visualization tools [pending]
 ### Dependencies: 19.2, 19.3, 19.4
-### Description: Develop tools to visualize collected analytics data including player movement and combat heatmaps
+### Description: Develop a comprehensive dashboard for visualizing and analyzing collected gameplay data
 ### Details:
-Create a developer dashboard with charts and graphs for key metrics. Implement heatmap generation for player movement patterns. Add combat engagement heatmaps showing where players engage in combat most frequently. Create visualization for player progression and retention. Implement filtering capabilities by date range, player segments, and game versions. Add export functionality for reports. Create automated alerts for anomalous patterns in the data.
+Build a web-based dashboard that visualizes all collected analytics data. Implement charts and graphs for player progression, retention, and engagement metrics. Integrate the heatmap visualizations from subtask 4. Create filtering and segmentation tools to analyze data across different player cohorts and time periods. Add export functionality for reports and raw data. Implement user management with appropriate access controls for the development team. Ensure the dashboard includes privacy compliance tools for data management and deletion requests.
 

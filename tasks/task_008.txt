@@ -11,45 +11,45 @@ Implement a state machine for enemy AI behavior (patrol, engage, evade). Create 
 Test AI behavior in various scenarios to ensure appropriate responses. Verify that AI difficulty scales correctly. Ensure AI performance is balanced and challenging but fair.
 
 # Subtasks:
-## 1. Implement basic state machine framework for enemy AI [pending]
+## 1. Implement AI state machine architecture [pending]
 ### Dependencies: None
-### Description: Create the core state machine architecture that will control enemy aircraft behavior with initial states (patrol, engage, evade)
+### Description: Create the core state machine framework that will control enemy aircraft behavior transitions between patrol, engage, and evade states
 ### Details:
-Design a flexible state machine class that handles state transitions based on conditions. Implement the three core states: patrol (default wandering behavior), engage (when enemy detects player), and evade (when enemy health is low). Include methods for state transitions and condition checking. This framework should be extensible for future AI behavior additions.
+Design and implement a flexible state machine class that handles state transitions based on conditions. Define the three primary states (patrol, engage, evade) with clear entry/exit conditions. Include methods for state updates and transitions. Create a configuration system to store state-specific parameters that can be adjusted for different difficulty levels. Implement debug visualization to show current AI state during development.
 
-## 2. Develop pathfinding and navigation system [pending]
+## 2. Develop patrol behavior and navigation system [pending]
 ### Dependencies: 8.1
-### Description: Create a navigation system that allows AI aircraft to plot and follow paths through the 3D environment
+### Description: Implement the patrol state behavior including waypoint following and basic navigation for AI aircraft
 ### Details:
-Implement a 3D pathfinding algorithm (A* or similar) that works with the flight environment. Create waypoint generation for patrol routes. Develop smooth path following with appropriate banking and altitude adjustments. Ensure the navigation system accounts for terrain avoidance and minimum turning radius of aircraft. Test with basic patrol routes before integrating with the state machine.
+Create a waypoint system that allows defining patrol routes. Implement smooth interpolation between waypoints with proper banking and altitude adjustments. Add randomization options to patrol patterns to increase unpredictability. Develop collision avoidance with terrain and other aircraft. Include performance limitations like turn radius, acceleration and speed constraints that match player aircraft capabilities.
 
-## 3. Implement target tracking and prediction system [pending]
+## 3. Implement target detection and engagement logic [pending]
 ### Dependencies: 8.1, 8.2
-### Description: Create a system for AI to track player aircraft and predict movement for weapon targeting
+### Description: Create systems for AI aircraft to detect player aircraft and transition to engagement behavior
 ### Details:
-Develop target acquisition logic with appropriate detection ranges and field of view limitations. Implement lead targeting calculations that predict player position based on velocity and distance. Create a targeting confidence value that affects accuracy. Add methods to determine optimal firing solutions and range calculations. This system will be used during the 'engage' state.
+Implement sensor simulation with configurable detection range and field of view. Create target prioritization logic when multiple potential targets exist. Add reaction time delay based on difficulty level. Implement line-of-sight checks to ensure realistic detection. Develop engagement decision making based on relative position, distance, and tactical advantage. Create smooth transition from patrol to engage state when targets are detected.
 
-## 4. Create evasive maneuvers and defensive tactics [pending]
+## 4. Develop target tracking and weapon systems [pending]
+### Dependencies: 8.3
+### Description: Create the AI's ability to track targets and use weapons effectively during engagement
+### Details:
+Implement predictive targeting that accounts for target velocity and acceleration. Create weapon selection logic based on range and engagement angle. Add accuracy variation based on difficulty level. Implement realistic weapon constraints like minimum range, lock-on requirements, and ammunition limits. Create aiming behavior with appropriate lead calculation for different weapon types. Add cooldown periods between weapon uses.
+
+## 5. Implement evasive maneuvers and defensive behavior [pending]
 ### Dependencies: 8.1, 8.2
-### Description: Implement a variety of evasive maneuvers for AI aircraft to use when under attack
+### Description: Create the evade state behavior with various defensive maneuvers when AI aircraft are under attack
 ### Details:
-Design a set of predefined evasive maneuvers (barrel rolls, split-S, dive, etc.). Create logic to select appropriate maneuvers based on the attack direction and current aircraft state. Implement transition logic between evasive actions and other states. Add cooldown timers to prevent maneuver spamming. Test these maneuvers in isolation before integrating with the main state machine.
+Implement threat detection from incoming missiles or when taking damage. Create a library of evasive maneuvers (barrel rolls, split-S, dive, etc.) with appropriate selection logic. Add countermeasure deployment (chaff/flares) with proper timing. Implement terrain-aware evasion to prevent crashes during defensive maneuvers. Create recovery behavior to re-engage after successful evasion. Scale evasion effectiveness with difficulty level.
 
-## 5. Implement formation flying capabilities [pending]
+## 6. Develop formation flying capabilities [pending]
 ### Dependencies: 8.2
-### Description: Create a system for multiple AI aircraft to fly in coordinated formations
+### Description: Implement the ability for multiple AI aircraft to fly in coordinated formations
 ### Details:
-Design different formation patterns (V-formation, echelon, line abreast, etc.). Implement relative positioning calculations for formation slots. Create leader-follower dynamics where formation members maintain position relative to a leader. Add formation-wide behavior commands that coordinate group actions. Include collision avoidance between formation members. Test with increasing numbers of AI aircraft to ensure performance.
+Create a formation manager that assigns relative positions to each aircraft in a group. Implement different formation types (V-formation, echelon, line abreast, etc.). Add dynamic spacing adjustment based on speed and maneuvers. Implement leader-follower hierarchy with role reassignment if the leader is destroyed. Create formation-wide tactical decision making for coordinated attacks and retreats. Add communication delay between formation members based on difficulty level.
 
-## 6. Add performance limitations and flight physics constraints [pending]
-### Dependencies: 8.2, 8.3, 8.4
-### Description: Ensure AI aircraft follow the same physical limitations and rules as player aircraft
+## 7. Implement difficulty scaling and performance balancing [pending]
+### Dependencies: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6
+### Description: Create a comprehensive difficulty system that adjusts AI capabilities across all behaviors
 ### Details:
-Implement realistic flight envelope limitations (max speed, turn rate, climb rate, etc.). Create energy management logic so AI considers aircraft energy state when maneuvering. Add g-force limitations to prevent unrealistic maneuvers. Implement fuel consumption and ammunition limitations. Test AI performance against player aircraft with identical specifications to ensure fairness.
-
-## 7. Implement difficulty levels affecting AI behavior [pending]
-### Dependencies: 8.1, 8.3, 8.4, 8.6
-### Description: Create a system to adjust AI capabilities based on selected difficulty level
-### Details:
-Design a difficulty scaling system with at least three levels (easy, medium, hard). Implement parameters that adjust with difficulty: reaction time, targeting accuracy, maneuver aggressiveness, formation discipline, and tactical decision making. Create configuration profiles for each difficulty level. Add randomization factors to create variety in AI behavior even within the same difficulty. Test extensively to ensure appropriate challenge at each level.
+Develop a central difficulty configuration system with presets (easy, medium, hard). Implement scaling for reaction time, accuracy, maneuver aggressiveness, and tactical decision making. Add performance limitations that ensure AI follows the same physical constraints as player aircraft. Create rubber-banding logic to keep engagements challenging but fair. Implement telemetry recording to analyze AI performance for balancing. Add difficulty-specific behaviors like more advanced tactics at higher difficulties.
 

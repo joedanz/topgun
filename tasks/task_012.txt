@@ -13,37 +13,37 @@ Test spatial audio accuracy with moving sound sources. Verify that volume contro
 # Subtasks:
 ## 1. Set up Web Audio API core infrastructure [pending]
 ### Dependencies: None
-### Description: Initialize the Web Audio API context and configure the audio listener for spatial sound
+### Description: Initialize the Web Audio API context and configure the audio listener for spatial audio
 ### Details:
-Create a singleton AudioManager class that initializes the AudioContext. Set up the audio listener with proper positioning in the 3D space. Implement methods to update listener position and orientation based on camera/player position. Add error handling for browser compatibility issues and autoplay restrictions. Include a basic audio loading utility function.
+Create a singleton AudioManager class that initializes and manages the AudioContext. Set up the audio listener with appropriate positioning in the 3D space. Implement methods to update listener position and orientation based on camera/player position. Handle browser autoplay policies with user interaction requirements. Include error handling for unsupported browsers.
 
-## 2. Implement 3D spatial audio positioning system [pending]
+## 2. Implement audio resource loading and caching system [pending]
 ### Dependencies: 12.1
-### Description: Create the core spatial audio functionality for positioning sound sources in 3D space
+### Description: Create a system to preload, decode and cache audio resources for efficient playback
 ### Details:
-Develop a SpatialSound class that takes a position vector and audio buffer. Configure PannerNodes with appropriate spatial settings (panning model, distance model, etc.). Implement methods to update sound source positions. Create utility functions for calculating audio parameters based on distance and position. Test with simple sound sources at different positions to verify proper 3D audio spatialization.
+Develop an AudioLoader class that handles fetching audio files via fetch API, decoding them with AudioContext.decodeAudioData(), and storing in a cache. Implement priority loading for essential sounds. Add progress tracking for loading status. Support different audio formats (mp3, ogg) with fallbacks. Create a resource management system to prevent memory leaks by unloading unused audio.
 
-## 3. Create audio category system with volume controls [pending]
-### Dependencies: 12.1
-### Description: Implement a category-based system for managing different types of audio with separate volume controls
+## 3. Implement 3D spatial audio with distance attenuation [pending]
+### Dependencies: 12.1, 12.2
+### Description: Create a spatial audio system that positions sounds in 3D space with appropriate distance-based volume reduction
 ### Details:
-Define audio categories (engine, weapons, explosions, UI). Create a category management system with separate GainNodes for each category. Implement volume control methods for individual categories and master volume. Add persistence for volume settings using localStorage. Create an interface for connecting sounds to appropriate category chains. Build a simple UI for testing volume controls.
+Develop a SpatialAudio class that connects audio sources to PannerNodes for 3D positioning. Configure distance models (inverse, linear, exponential) for realistic attenuation. Implement methods to update sound source positions. Add rolloff factor configuration for fine-tuning distance attenuation. Include methods to convert game world coordinates to audio space coordinates.
 
-## 4. Implement distance attenuation and Doppler effect [pending]
-### Dependencies: 12.2
-### Description: Add realistic distance-based volume reduction and Doppler effect for moving sound sources
+## 4. Implement audio categories with volume controls [pending]
+### Dependencies: 12.1, 12.2
+### Description: Create a category system for different audio types with independent volume controls
 ### Details:
-Configure distance models (linear, inverse, exponential) for different sound types. Implement custom rolloff curves for specific sound effects. Add velocity tracking to sound sources for Doppler effect calculation. Create a system to update velocity vectors for moving objects. Test with moving sound sources to verify proper Doppler shifting and distance attenuation.
+Create an AudioCategory class to group related sounds (engine, weapons, explosions, UI). Implement GainNodes for each category to control volume levels. Add persistence for user volume preferences using localStorage. Create a UI component for volume adjustment. Implement methods to mute/unmute specific categories. Add master volume control that affects all categories.
 
-## 5. Build music system with crossfading [pending]
+## 5. Implement Doppler effect for moving sound sources [pending]
 ### Dependencies: 12.3
-### Description: Create a background music system that supports smooth transitions between tracks
+### Description: Add Doppler effect simulation to create realistic audio for moving objects
 ### Details:
-Implement a MusicPlayer class that manages background music. Create crossfading functionality using multiple audio sources and gain nodes. Add methods for scheduling music changes with customizable transition times. Implement music zones for different game areas. Create event triggers for music changes. Add support for layered music tracks that can be mixed dynamically based on game state.
+Extend the SpatialAudio class to track velocity of sound sources. Configure PannerNode Doppler settings (dopplerFactor, speedOfSound). Create a system to calculate velocity vectors from position changes over time. Implement methods to enable/disable Doppler effect for specific sound types. Add performance optimization to skip Doppler calculations for distant or insignificant sounds.
 
-## 6. Implement audio preloading, caching and mute functionality [pending]
-### Dependencies: 12.3, 12.5
-### Description: Add performance optimizations through preloading and caching, plus mute functionality for background play
+## 6. Implement background music system with crossfading [pending]
+### Dependencies: 12.1, 12.2, 12.4
+### Description: Create a music subsystem that supports smooth transitions between tracks
 ### Details:
-Create an asset preloading system for audio files with progress tracking. Implement caching of decoded audio data to improve performance. Add memory management to unload unused audio assets. Create a global mute function that preserves individual volume settings. Implement background play detection and automatic muting when the tab loses focus. Add user controls for mute preferences. Test performance with many simultaneous sound sources.
+Develop a MusicManager class that handles background music playback. Implement crossfading between tracks using multiple audio sources and GainNodes. Add methods for triggering music changes based on game events. Create a playlist system for sequential or random track selection. Implement music streaming for longer tracks to reduce memory usage. Add support for looping specific sections of tracks. Ensure music properly pauses/resumes when game loses/gains focus.
 

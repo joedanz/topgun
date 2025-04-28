@@ -15,29 +15,29 @@ Test campaign progression to ensure missions unlock correctly. Verify that narra
 ### Dependencies: None
 ### Description: Create the foundational data structures and persistent storage system for tracking campaign progress
 ### Details:
-Implement a data model for campaign structure including mission sequences, unlock conditions, and player progress. Create a JSON-based save system that persists campaign state between sessions. Design the data schema to include mission IDs, completion status, unlocked status, and narrative progression points. Implement functions to load/save campaign progress to local storage or server. Include error handling for corrupted save data.
+Implement a data model that defines campaign structure including missions, narrative elements, and player progress. Create a JSON-based campaign definition format that includes mission sequences, prerequisites, and narrative content references. Develop a persistent storage system using local storage or cloud saves to track player progress, completed missions, and unlocked content. Include serialization/deserialization methods for saving and loading campaign state.
 
-## 2. Implement mission sequencing and unlock system [pending]
+## 2. Implement mission sequencing and unlocking logic [pending]
 ### Dependencies: 16.1
-### Description: Create the logic for mission progression and unlocking based on completion criteria
+### Description: Create the system that manages mission progression and unlocking based on player achievements
 ### Details:
-Build a mission dependency graph that defines the unlock requirements for each mission. Implement functions to check mission prerequisites and update mission availability. Create a mission status tracking system that records completion state, performance metrics, and rewards earned. Design the unlock notification system to inform players when new missions become available. Include support for both linear and branching mission paths.
+Build a mission manager class that loads the campaign structure and tracks current progress. Implement logic to determine which missions are available based on completion status of prerequisites. Create methods to mark missions as complete and update the persistent storage. Add functionality to handle branching mission paths if the campaign design includes multiple routes. Implement difficulty scaling parameters that increase challenge as the campaign progresses.
 
-## 3. Develop campaign narrative delivery system [pending]
-### Dependencies: 16.1
-### Description: Create the framework for delivering story elements through briefings, cutscenes, and dialogue
-### Details:
-Implement a narrative content manager that loads and displays mission briefings, debriefings, and story sequences. Create a dialogue system for character interactions with support for basic branching. Build a cutscene system that can display pre-rendered or in-engine cinematics at key campaign moments. Design a narrative asset loading system that efficiently manages text, voice, and visual content. Include support for skipping narrative elements for players on repeat playthroughs.
-
-## 4. Create campaign map and mission selection interface [pending]
+## 3. Develop campaign map/menu interface [pending]
 ### Dependencies: 16.1, 16.2
-### Description: Build the visual interface for navigating the campaign and selecting missions
+### Description: Create the visual interface for players to select missions and view campaign progress
 ### Details:
-Design and implement a campaign map or menu UI that visually represents mission progression. Create interactive elements for mission selection with clear indication of locked/unlocked status. Implement mission preview functionality showing difficulty, rewards, and narrative context. Add visual feedback for completed missions and campaign progress. Include navigation controls and transitions between the campaign map and other game screens.
+Design and implement a campaign map or menu UI that visually represents mission progression. Show completed, available, and locked missions with appropriate visual indicators. Include interactive elements to select missions and view mission details. Display campaign progress statistics and achievements. Implement smooth transitions and animations for mission selection and completion. Ensure the interface adapts to different screen sizes and resolutions.
 
-## 5. Implement campaign rewards and difficulty progression [pending]
-### Dependencies: 16.1, 16.2, 16.4
-### Description: Create systems for rewarding players and scaling difficulty throughout the campaign
+## 4. Create narrative delivery system [pending]
+### Dependencies: 16.1, 16.2
+### Description: Implement the system for presenting story elements through briefings, cutscenes, or dialogue
 ### Details:
-Design a reward system that grants items, abilities, or achievements for completing missions and campaign milestones. Implement difficulty scaling that increases challenge appropriately as players progress through the campaign. Create a campaign statistics tracking system to record player performance across all missions. Design special rewards for campaign completion and exceptional performance. Include a system for replaying completed missions with adjusted difficulty options.
+Develop a narrative manager that loads and displays story content at appropriate campaign points. Implement a briefing system for pre-mission information and context. Create a basic cutscene system using in-game assets or pre-rendered content for key story moments. Add a dialogue system for character interactions if needed. Ensure narrative elements can be skipped but remain accessible for review. Include hooks for localization of all narrative content.
+
+## 5. Implement rewards and achievement system [pending]
+### Dependencies: 16.1, 16.2, 16.3
+### Description: Create the system for tracking and awarding campaign milestones and achievements
+### Details:
+Design and implement a reward system for campaign progression including unlockable content, abilities, or cosmetic items. Create an achievement system that tracks player accomplishments throughout the campaign. Implement visual and audio feedback for unlocking rewards and achievements. Add a UI component to the campaign menu for viewing earned rewards and achievements. Ensure rewards are properly saved in the persistent storage system and applied to gameplay when appropriate.
 

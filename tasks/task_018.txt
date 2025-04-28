@@ -15,35 +15,35 @@ Test each mission type to ensure objectives function correctly. Verify that spec
 ### Dependencies: None
 ### Description: Create the foundation for ground strike missions with targetable ground units and basic objective tracking
 ### Details:
-Develop a system for placing and managing destructible ground targets (buildings, vehicles, installations). Implement target health systems, damage models, and destruction effects. Create objective tracking to monitor target destruction progress. Add mission success/failure conditions based on percentage of targets destroyed. Include different target types with varying difficulty (stationary vs. mobile, armored vs. unarmored).
+Develop a system for spawning and managing ground targets (military bases, vehicles, installations). Implement target health systems and destruction effects. Create objective tracking for destroying specific targets or a percentage of targets. Add mission success/failure conditions based on ground target status. Include basic UI elements to show target locations and status.
 
-## 2. Develop escort mission mechanics [pending]
+## 2. Develop escort and protection mission mechanics [pending]
 ### Dependencies: 18.1
 ### Description: Create escort missions where players must protect allied aircraft or ground units
 ### Details:
-Implement AI for allied units that need protection. Create threat systems that target these allies. Develop proximity-based protection mechanics that track player position relative to allies. Implement health/damage tracking for escorted units. Add mission failure conditions when allies are destroyed. Include progress indicators showing escort route completion percentage and ally health status.
+Implement AI for allied units that need protection. Create threat assessment system for enemies targeting allies. Develop proximity tracking between player, allies and enemies. Implement mission failure conditions when allies are destroyed. Add UI elements showing ally health and status. Include difficulty scaling by adjusting enemy aggressiveness and ally vulnerability.
 
-## 3. Create aerial refueling challenge system [pending]
+## 3. Create aerial refueling and precision flying challenges [pending]
 ### Dependencies: None
-### Description: Implement precision flying challenges requiring players to refuel mid-air
+### Description: Implement refueling missions and other precision flying challenges requiring exact positioning and control
 ### Details:
-Model tanker aircraft with accurate flight patterns and refueling equipment. Implement docking mechanics for refueling probe/receptacle. Create precision flying requirements with appropriate collision detection. Add fuel transfer systems that track successful connection time. Implement visual and audio feedback for successful/unsuccessful refueling attempts. Include difficulty levels with varying tanker speeds and weather conditions.
+Develop tanker aircraft with refueling boom/basket mechanics. Implement physics for successful connection and fuel transfer. Create precision flying challenges with tight spaces or specific flight paths. Add scoring system based on accuracy and time. Implement visual guides and feedback for player positioning. Include tutorial elements to teach players the mechanics.
 
-## 4. Implement time trial mission system [pending]
-### Dependencies: None
-### Description: Develop checkpoint-based time trial missions with timing and scoring mechanics
+## 4. Implement time trial and checkpoint missions [pending]
+### Dependencies: 18.3
+### Description: Create time-based missions with checkpoints, racing elements, and time pressure
 ### Details:
-Create a checkpoint system with visible markers in 3D space. Implement timing mechanics to track mission progress. Develop a scoring system based on completion time and optional objectives. Add checkpoint sequencing with directional indicators. Create leaderboard integration for comparing times. Include multiple difficulty levels with more complex checkpoint patterns and tighter time requirements.
+Design checkpoint system with visible markers in 3D space. Implement timing system with countdown and elapsed time tracking. Create race courses with optimal paths and challenges. Add difficulty levels with different time requirements. Develop leaderboard system for comparing times. Include special obstacles or weather conditions to increase difficulty.
 
-## 5. Add specialized mission mechanics [pending]
-### Dependencies: 18.1, 18.2, 18.4
-### Description: Implement stealth, reconnaissance, and other specialized mission objectives
+## 5. Add specialized mission mechanics for stealth and reconnaissance [pending]
+### Dependencies: 18.1, 18.2
+### Description: Implement stealth and reconnaissance mission types with detection systems and information gathering
 ### Details:
-Develop stealth mechanics with detection systems based on altitude, speed, and noise. Create reconnaissance objectives requiring photography or scanning of specific targets. Implement data collection mechanics for intelligence-gathering missions. Add enemy radar and detection systems with visual indicators for threat zones. Create mission-specific UI elements showing stealth status and reconnaissance progress. Include specialized equipment options relevant to mission types.
+Create enemy detection systems based on visibility, noise, and radar signatures. Implement stealth mechanics including radar avoidance and terrain masking. Develop reconnaissance objectives requiring photographing or scanning targets. Add mission-specific equipment like cameras or sensors. Create UI elements showing detection status and gathered intelligence. Include mission failure conditions when detected in stealth missions.
 
-## 6. Create dynamic mission generation system [pending]
+## 6. Develop dynamic mission generation system [pending]
 ### Dependencies: 18.1, 18.2, 18.3, 18.4, 18.5
-### Description: Implement a system for procedurally generating missions with variable conditions and objectives
+### Description: Create a system for procedurally generating missions with variable conditions, objectives and environments
 ### Details:
-Develop a mission template system that can be populated with different objectives. Create environmental condition variations (time of day, weather, visibility). Implement difficulty scaling based on player progression. Add mission randomization for target placement, enemy composition, and objective combinations. Create a mission selection interface showing available mission types and conditions. Implement a reward system based on mission complexity and performance.
+Implement procedural generation for mission types, objectives, and difficulty. Create system for varying environmental conditions (time of day, weather, visibility). Develop mission parameter randomization within balanced constraints. Add mission progression system with increasing challenge. Implement mission variety tracking to ensure player experiences different types. Create mission rating system for player feedback and improvement.
 

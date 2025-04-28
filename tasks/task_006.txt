@@ -15,29 +15,29 @@ Test HUD visibility and readability across different screen sizes and lighting c
 ### Dependencies: None
 ### Description: Create the primary flight information display components showing speed, altitude, ammo count, and health status
 ### Details:
-Implement a container component for the HUD that positions elements appropriately on screen. Create individual components for speed (numeric with visual indicator), altitude (meter with numeric value), ammunition counter (visual + numeric), and health display (bar or percentage). Use CSS Grid or Flexbox for layout. Ensure elements are positioned non-intrusively (typically bottom/corners of screen). Add basic animations for value changes. Test initial implementation with placeholder data.
+Implement a container component for the HUD that positions elements appropriately. Create individual components for speed (numerical display with units), altitude (bar or numerical display), ammunition counter (numerical with icon), and health indicator (bar with color gradient). Use CSS Grid or Flexbox for layout. Ensure elements are positioned non-intrusively (typically bottom or corners of screen). Add basic animations for value changes. Test initial implementation with mock data.
 
-## 2. Develop targeting system with enemy indicators [pending]
+## 2. Develop targeting system with reticle and enemy indicators [pending]
 ### Dependencies: 6.1
-### Description: Create a targeting reticle and system for highlighting/indicating enemies in the player's field of view
+### Description: Create a targeting reticle in the center of the screen and directional indicators for enemies
 ### Details:
-Implement a centered reticle that shows when player can target/fire. Create enemy indicator markers that appear at screen edges when enemies are outside FOV. Add distance indicators for enemies. Implement visual feedback when enemy is in targeting range (reticle color change). Create a target-lock visual effect when applicable. Ensure targeting elements scale appropriately with distance. Test with different enemy positions and states.
+Implement a centered reticle that changes appearance when hovering over targetable objects. Create off-screen enemy indicators that point toward enemies outside the player's field of view (arrow indicators at screen edges). Add distance indicators for enemies. Implement visual feedback when enemy is in targeting range. Ensure targeting elements scale appropriately with screen size. Use SVG for crisp scaling of targeting elements.
 
-## 3. Implement mission objectives and notification system [pending]
+## 3. Implement mission objective display and notification system [pending]
 ### Dependencies: 6.1
-### Description: Create UI components for displaying current mission objectives and in-game notifications/messages
+### Description: Create UI components for displaying current mission objectives and in-game notifications
 ### Details:
-Design a mission objective panel that can be toggled or appears at appropriate times. Implement a notification system for game events (new objectives, warnings, achievements). Create fade-in/fade-out animations for notifications. Add a message log that can be accessed to review past notifications. Ensure objectives update visually when completed. Position these elements to avoid overlap with critical HUD components. Test with various notification types and mission states.
+Design a collapsible mission objective panel that shows current and completed objectives. Implement a notification system that displays temporary messages for game events (e.g., 'Mission updated', 'Low health'). Create animations for notification appearance/disappearance. Use a queue system for multiple notifications. Position objectives unobtrusively (typically top-right). Ensure text is legible across different backgrounds using appropriate contrast and optional text shadows.
 
 ## 4. Create pause menu with game options [pending]
 ### Dependencies: 6.1
-### Description: Implement a full-screen pause menu with resume, restart, settings, and quit functionality
+### Description: Implement a full-screen pause menu with resume, restart, and quit options
 ### Details:
-Design a pause menu overlay that appears when game is paused. Implement menu buttons for: Resume Game, Restart Mission, Settings (submenu), and Quit Game. Add appropriate visual styling and hover effects for buttons. Create transitions for menu appearance/disappearance. Implement the settings submenu with options for audio, controls, and display settings. Ensure the pause function properly stops game activity. Test menu navigation and all button functionalities.
+Design a modal pause menu that appears when the player presses ESC or pause button. Include buttons for resume game, restart mission, settings, and quit game. Add appropriate hover and click animations for menu items. Implement keyboard navigation for menu options. Create a semi-transparent background that dims the game scene. Ensure menu is centered and scales appropriately for different screen sizes. Add transitions for menu appearance/disappearance.
 
-## 5. Implement responsive design and finalize UI integration [pending]
+## 5. Implement responsive design and cross-device testing [pending]
 ### Dependencies: 6.1, 6.2, 6.3, 6.4
-### Description: Ensure all UI elements scale appropriately for different screen sizes and integrate the complete UI system with game state
+### Description: Ensure all UI elements scale appropriately across different screen sizes and test on multiple devices
 ### Details:
-Implement responsive design using CSS media queries or dynamic scaling based on viewport size. Test UI on multiple screen resolutions and aspect ratios. Connect all UI elements to actual game data sources instead of placeholders. Implement UI state management to handle different game states (combat, exploration, cutscenes). Add final polish with consistent styling, colors, and themes across all UI elements. Optimize performance for UI rendering. Conduct user testing to ensure information is clearly visible and intuitive.
+Implement responsive design using CSS media queries for different screen sizes. Create breakpoints for desktop, tablet, and mobile views. Test UI elements on different aspect ratios and resolutions. Adjust element sizes and positions based on screen size. Implement touch-friendly controls for mobile devices. Create a UI scaling option in settings. Verify all text remains readable at different scales. Document any device-specific considerations for future reference.
 

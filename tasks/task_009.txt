@@ -11,45 +11,45 @@ Implement terrain rendering using heightmaps with appropriate LOD. Create water 
 Test environment rendering performance across different devices. Verify that LOD transitions are smooth and not distracting. Ensure environmental elements look consistent and realistic.
 
 # Subtasks:
-## 1. Implement terrain rendering with heightmap-based LOD [pending]
+## 1. Implement basic terrain rendering with heightmaps [pending]
 ### Dependencies: None
-### Description: Create the foundation for terrain rendering using heightmaps with multiple levels of detail
+### Description: Create the foundation for terrain rendering using heightmap data with basic texturing
 ### Details:
-Implement a terrain system using heightmap data to generate mesh geometry. Create a quadtree or similar structure for LOD management. Implement mesh tessellation based on camera distance. Support texture splatting for different terrain types (grass, rock, sand, etc.). Include normal mapping for surface detail. Ensure smooth transitions between LOD levels to prevent popping.
+Implement a terrain mesh generator that takes heightmap data as input. Create a grid-based mesh with variable resolution. Apply basic texturing based on height and slope. Implement a simple shader for terrain rendering with diffuse lighting. Set up the camera and basic navigation to test the terrain.
 
-## 2. Develop water surface rendering system [pending]
+## 2. Add Level of Detail (LOD) system to terrain [pending]
 ### Dependencies: 9.1
+### Description: Enhance terrain rendering with LOD to optimize performance for distant terrain
+### Details:
+Implement a quadtree or similar spatial partitioning structure for terrain chunks. Create multiple detail levels for terrain mesh with distance-based tessellation. Implement smooth transitions between LOD levels to prevent popping. Add frustum culling to avoid rendering terrain chunks outside the camera view. Benchmark and optimize terrain rendering performance.
+
+## 3. Develop sky and atmospheric rendering [pending]
+### Dependencies: None
+### Description: Create a dynamic sky system with day/night cycle and atmospheric effects
+### Details:
+Implement a skybox or skydome with procedural coloring based on time of day. Create a sun and moon system with proper positioning based on time. Add atmospheric scattering effects for realistic sunrise/sunset. Implement a star system for night sky. Create a time controller to adjust and animate the time of day.
+
+## 4. Implement water rendering system [pending]
+### Dependencies: 9.1, 9.3
 ### Description: Create realistic water surfaces with reflections, refractions, and animations
 ### Details:
-Implement planar water surfaces using specialized shaders. Add screen-space reflections of the environment. Implement normal mapping for wave details and animation. Create foam effects near shorelines and object intersections. Add underwater caustics. Implement water transparency with depth-based color adjustment. Ensure proper integration with the terrain system for shoreline blending.
-
-## 3. Create dynamic sky and lighting system [pending]
-### Dependencies: 9.1
-### Description: Develop a sky rendering system with time of day cycle and atmospheric effects
-### Details:
-Implement a sky dome or box with procedural texturing. Create a day/night cycle with sun and moon positioning. Add a dynamic lighting system that affects terrain and water. Implement atmospheric scattering for realistic sky colors at different times. Add a star system for night sky. Create smooth transitions between different times of day. Ensure the lighting system properly affects all other environment elements.
-
-## 4. Implement weather and cloud systems [pending]
-### Dependencies: 9.3
-### Description: Add dynamic weather effects and cloud rendering to the environment
-### Details:
-Develop a volumetric or billboard-based cloud system. Implement cloud movement and formation algorithms. Create precipitation effects (rain, snow). Add lightning and thunder for storm conditions. Implement weather transitions with appropriate visual and lighting changes. Ensure clouds cast shadows on the terrain. Create a weather parameter system that can be controlled programmatically.
+Implement a water plane mesh with appropriate tessellation. Create water shaders with reflections of the sky and surrounding terrain. Add refraction effects for underwater terrain. Implement wave animations using noise functions or FFT-based approaches. Add foam effects near shorelines and for wave crests. Optimize water rendering for different quality settings.
 
 ## 5. Add environmental objects and vegetation [pending]
-### Dependencies: 9.1, 9.3
-### Description: Integrate static and dynamic environmental objects into the rendering system
+### Dependencies: 9.1, 9.2
+### Description: Implement system for placing and rendering buildings, trees, and other environmental objects
 ### Details:
-Implement a system for placing buildings, trees, rocks, and other objects on the terrain. Create LOD systems for environmental objects. Add vegetation with wind animation effects. Implement instancing for efficient rendering of repeated objects. Create a procedural placement system based on terrain properties. Ensure proper shadowing and lighting integration with the sky system. Add collision data for gameplay interactions.
+Create an object placement system based on terrain properties. Implement instanced rendering for vegetation and repeated objects. Add LOD system for environmental objects based on distance. Create wind animation effects for vegetation. Implement proper shadows for environmental objects. Optimize rendering with culling techniques for dense object populations.
 
-## 6. Develop atmospheric fog and distance effects [pending]
-### Dependencies: 9.3, 9.4
-### Description: Create fog and atmospheric effects for depth perception and distance culling
+## 6. Develop fog and atmospheric distance effects [pending]
+### Dependencies: 9.3
+### Description: Implement fog system for distance culling and atmospheric depth
 ### Details:
-Implement distance-based fog with height variation. Create atmospheric haze effects that change with weather and time of day. Add distance culling to improve performance. Implement heat distortion effects for appropriate environments. Create depth-based color grading for distance objects. Ensure fog interacts properly with all environment elements. Add particle systems for localized atmospheric effects (dust, mist).
+Create a distance-based fog system with height variation. Implement atmospheric perspective effects for distant terrain. Add fog density variation based on weather conditions. Create smooth transitions between different fog states. Optimize fog rendering for minimal performance impact. Integrate fog with the sky and lighting systems.
 
-## 7. Optimize rendering pipeline for performance [pending]
-### Dependencies: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6
-### Description: Refine and optimize the entire environment rendering system for target hardware
+## 7. Implement cloud rendering and weather effects [pending]
+### Dependencies: 9.3, 9.6
+### Description: Create a cloud system with dynamic weather patterns and effects
 ### Details:
-Implement occlusion culling to avoid rendering hidden objects. Add frustum culling for off-screen elements. Optimize shader complexity based on distance and importance. Create render buckets for efficient batching. Implement texture streaming for large environments. Add quality settings for different hardware capabilities. Profile and optimize CPU/GPU bottlenecks. Implement level streaming for large environments. Create a debug visualization system for performance monitoring.
+Implement cloud rendering using either billboard clouds, volumetric clouds, or a hybrid approach. Create cloud movement and formation animations. Add weather effects like rain and snow with particle systems. Implement lightning effects for storm conditions. Create transitions between different weather states. Optimize cloud rendering for performance with appropriate LOD techniques.
 

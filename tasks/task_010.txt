@@ -15,35 +15,35 @@ Test mission loading and initialization with various mission types. Verify that 
 ### Dependencies: None
 ### Description: Design and implement the foundational Mission class with essential properties and methods
 ### Details:
-Create a Mission class with properties for ID, name, description, status (not started, active, completed, failed), and objectives collection. Implement basic methods for initialization, activation, completion, and failure. Design the class to be extensible for future mission types. Include serialization support for saving/loading mission state.
+Create a Mission class that includes: unique ID, title, description, status (not started, active, completed, failed), list of objectives, completion criteria, and reward data. Implement basic methods for mission initialization, activation, completion, and failure. Design the class to be extensible for different mission types. Include serialization support for saving/loading mission state.
 
 ## 2. Implement Objective system [pending]
 ### Dependencies: 10.1
-### Description: Create the Objective base class and specific objective type implementations
+### Description: Create the Objective base class and derived objective types
 ### Details:
-Design an Objective base class with properties for description, status, and completion criteria. Implement derived classes for different objective types: DestroyTargetObjective, ProtectAllyObjective, ReachWaypointObjective. Each objective type should have specific validation logic and progress tracking. Include methods for checking completion status and updating progress.
+Design an Objective base class with common properties (ID, description, status, completion criteria). Implement derived classes for different objective types: DestroyTargetObjective, ProtectAllyObjective, ReachWaypointObjective, CollectItemObjective, and TimedObjective. Each objective type should have specific completion logic, progress tracking, and validation methods. Include methods to check objective status and update progress.
 
 ## 3. Develop mission trigger system [pending]
-### Dependencies: 10.1
-### Description: Create a flexible trigger system that can respond to game events and player actions
+### Dependencies: 10.1, 10.2
+### Description: Create a flexible event-based trigger system for missions
 ### Details:
-Implement a Trigger class hierarchy with various trigger types (location-based, time-based, action-based, entity-based). Create an event system that allows triggers to subscribe to relevant game events. Implement trigger activation and deactivation logic. Add support for compound triggers (AND/OR logic between multiple conditions). Ensure triggers can be serialized for save/load functionality.
+Implement a MissionTrigger system that can activate based on various conditions: player location, time elapsed, enemy/ally status, item collection, or custom game events. Create a TriggerManager to register and process triggers. Design trigger actions that can start/complete objectives, spawn entities, display messages, or modify mission state. Include support for compound triggers (AND/OR logic between multiple conditions).
 
 ## 4. Build mission loading and management system [pending]
 ### Dependencies: 10.1, 10.2, 10.3
-### Description: Create a MissionManager to handle loading, tracking, and transitioning between missions
+### Description: Create a MissionManager to handle mission lifecycle and state
 ### Details:
-Implement a MissionManager singleton that maintains the collection of available and active missions. Create methods for loading mission definitions from data files (JSON/XML). Add functionality to activate/deactivate missions based on game state. Implement mission dependency chains where completing one mission can unlock others. Include mission state persistence through save/load cycles.
+Implement a MissionManager singleton that handles: loading mission definitions from data files (JSON/XML), instantiating Mission objects, tracking active and completed missions, updating mission status based on game events, and managing mission transitions. Add support for mission dependencies (missions that require others to be completed first). Include methods to query available missions and mission status.
 
-## 5. Implement mission success/failure conditions and scoring [pending]
-### Dependencies: 10.2, 10.3, 10.4
-### Description: Add logic for determining mission outcomes and calculating player performance
+## 5. Implement mission UI and feedback systems [pending]
+### Dependencies: 10.1, 10.2, 10.4
+### Description: Create UI components for mission briefing, objectives, and status
 ### Details:
-Create a system for defining mission success and failure conditions using objectives and triggers. Implement scoring mechanisms based on completion time, objective success rate, and optional bonus objectives. Add support for mission-specific rewards (experience, items, unlocks). Create hooks for game systems to respond to mission state changes (UI updates, narrative progression).
+Design and implement: a mission briefing/debriefing screen with mission details and objectives, an in-game mission tracker showing current objectives and progress, notification system for objective updates and mission status changes, and a mission log/journal for reviewing active and completed missions. Ensure UI updates in real-time as mission status changes. Add support for mission-specific UI elements like waypoint markers and target indicators.
 
-## 6. Create mission briefing and checkpoint system [pending]
-### Dependencies: 10.4, 10.5
-### Description: Implement UI components for mission information and progress saving functionality
+## 6. Add checkpoint and progress saving system [pending]
+### Dependencies: 10.1, 10.2, 10.3, 10.4
+### Description: Implement functionality to save and restore mission progress
 ### Details:
-Design and implement mission briefing and debriefing UI screens showing objectives, context, and rewards. Create a checkpoint system that saves mission progress at key points. Implement mission log functionality to track active and completed missions. Add support for mission-specific hints and guidance. Ensure all UI elements update properly when mission state changes.
+Create a checkpoint system that saves mission state at key points. Implement serialization/deserialization of mission data, objective progress, and trigger states. Add methods to create automatic checkpoints at objective completion or at specific mission triggers. Design a system to restore mission state when loading a saved game. Include validation to prevent mission state corruption and handle edge cases like interrupted saves.
 
