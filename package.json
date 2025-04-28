@@ -1,0 +1,45 @@
+{
+  "name": "topgun",
+  "version": "1.0.0",
+  "description": "This project is a modern flight combat game inspired by Top Gun. It is structured for modular development and easy asset management.",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve --config webpack.dev.js --open",
+    "build:dev": "webpack --config webpack.dev.js",
+    "build:prod": "webpack --config webpack.prod.js",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix && prettier --write \"src/**/*.{js,css,md}\"",
+    "prepare": "husky install",
+
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "lint-staged": {
+    "src/**/*.{js,css,md}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "babel-loader": "^10.0.0",
+    "css-loader": "^7.1.2",
+    "eslint": "^9.25.1",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.2.6",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.6.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
+    "prettier": "^3.5.3",
+    "style-loader": "^4.0.0",
+    "url-loader": "^4.1.1",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
+  }
+}
