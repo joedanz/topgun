@@ -1,0 +1,43 @@
+# Task ID: 5
+# Title: Implement basic flight controls for desktop and mobile
+# Status: pending
+# Dependencies: 4
+# Priority: high
+# Description: Create control systems for both desktop (keyboard/mouse) and mobile (touch/tilt) platforms.
+# Details:
+Implement keyboard controls for desktop (WASD, arrow keys, spacebar). Add mouse control options for aiming and camera. Create touch controls for mobile with virtual joysticks. Implement device orientation controls (tilt) as an option for mobile. Build a control settings menu with sensitivity adjustments. Create an input abstraction layer to normalize controls across platforms. Add gamepad support for desktop browsers.
+
+# Test Strategy:
+Test controls on multiple devices and browsers. Verify that control responsiveness meets expectations. Ensure that control settings are saved correctly between sessions.
+
+# Subtasks:
+## 1. Create input abstraction layer [pending]
+### Dependencies: None
+### Description: Develop a platform-agnostic input system that normalizes control inputs across different devices
+### Details:
+Design and implement an input abstraction layer that maps raw inputs (keyboard, mouse, touch, tilt, gamepad) to standardized game actions. Create interfaces for different input types and a central InputManager class that processes all inputs. Define common control actions like 'move', 'accelerate', 'brake', 'turn', etc. that will work consistently regardless of input source. This foundation will allow other control implementations to plug into a unified system.
+
+## 2. Implement desktop keyboard and mouse controls [pending]
+### Dependencies: 5.1
+### Description: Add support for keyboard (WASD, arrow keys, spacebar) and mouse input for desktop browsers
+### Details:
+Implement keyboard handlers for WASD and arrow keys for movement, spacebar for special actions. Add mouse control for aiming and camera manipulation. Map these inputs to the abstraction layer created in subtask 1. Include key rebinding capability in the implementation. Test responsiveness and ensure smooth control with various keyboard/mouse combinations. Implement appropriate event listeners and handle edge cases like key conflicts.
+
+## 3. Add gamepad support for desktop browsers [pending]
+### Dependencies: 5.1
+### Description: Implement gamepad controls using the Gamepad API for desktop browsers
+### Details:
+Use the Gamepad API to detect and handle input from connected controllers. Map analog sticks to movement and camera controls, and buttons to actions. Implement deadzone handling for joysticks and button sensitivity. Test with multiple gamepad models (Xbox, PlayStation, generic) to ensure compatibility. Add gamepad connection/disconnection handling. Connect these inputs to the abstraction layer from subtask 1.
+
+## 4. Develop mobile touch and tilt controls [pending]
+### Dependencies: 5.1
+### Description: Create touch controls with virtual joysticks and optional device orientation (tilt) controls for mobile devices
+### Details:
+Implement virtual joysticks for movement and camera control on touchscreens. Add touch gesture recognition for special actions. Create device orientation controls using the DeviceOrientation API for tilt-based steering as an alternative control method. Handle multi-touch inputs and prevent conflicts with UI elements. Ensure controls are responsive and properly positioned for different screen sizes. Connect all mobile inputs to the abstraction layer from subtask 1.
+
+## 5. Build control settings menu with customization options [pending]
+### Dependencies: 5.2, 5.3, 5.4
+### Description: Create a user interface for adjusting control settings and sensitivity across all platforms
+### Details:
+Design and implement a control settings menu accessible from the game. Include options for sensitivity adjustment for each control type (mouse sensitivity, touch sensitivity, tilt sensitivity, gamepad sensitivity). Add toggle options for enabling/disabling control methods (especially for mobile tilt controls). Implement control scheme switching between different presets. Create visual indicators for current control bindings. Ensure settings are saved between sessions using localStorage or other persistence methods. Test the settings menu on all supported platforms.
+

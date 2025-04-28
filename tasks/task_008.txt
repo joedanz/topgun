@@ -1,0 +1,55 @@
+# Task ID: 8
+# Title: Develop basic enemy AI for dogfights
+# Status: pending
+# Dependencies: 7
+# Priority: medium
+# Description: Create AI-controlled enemy aircraft with basic dogfighting capabilities.
+# Details:
+Implement a state machine for enemy AI behavior (patrol, engage, evade). Create path finding and navigation systems for AI aircraft. Implement target tracking and prediction for AI weapons. Add difficulty levels affecting AI aggressiveness and accuracy. Create formation flying capabilities for groups of AI aircraft. Implement basic evasive maneuvers when under attack. Add performance limitations to ensure AI follows the same rules as players.
+
+# Test Strategy:
+Test AI behavior in various scenarios to ensure appropriate responses. Verify that AI difficulty scales correctly. Ensure AI performance is balanced and challenging but fair.
+
+# Subtasks:
+## 1. Implement basic state machine framework for enemy AI [pending]
+### Dependencies: None
+### Description: Create the core state machine architecture that will control enemy aircraft behavior with initial states (patrol, engage, evade)
+### Details:
+Design a flexible state machine class that handles state transitions based on conditions. Implement the three core states: patrol (default wandering behavior), engage (when enemy detects player), and evade (when enemy health is low). Include methods for state transitions and condition checking. This framework should be extensible for future AI behavior additions.
+
+## 2. Develop pathfinding and navigation system [pending]
+### Dependencies: 8.1
+### Description: Create a navigation system that allows AI aircraft to plot and follow paths through the 3D environment
+### Details:
+Implement a 3D pathfinding algorithm (A* or similar) that works with the flight environment. Create waypoint generation for patrol routes. Develop smooth path following with appropriate banking and altitude adjustments. Ensure the navigation system accounts for terrain avoidance and minimum turning radius of aircraft. Test with basic patrol routes before integrating with the state machine.
+
+## 3. Implement target tracking and prediction system [pending]
+### Dependencies: 8.1, 8.2
+### Description: Create a system for AI to track player aircraft and predict movement for weapon targeting
+### Details:
+Develop target acquisition logic with appropriate detection ranges and field of view limitations. Implement lead targeting calculations that predict player position based on velocity and distance. Create a targeting confidence value that affects accuracy. Add methods to determine optimal firing solutions and range calculations. This system will be used during the 'engage' state.
+
+## 4. Create evasive maneuvers and defensive tactics [pending]
+### Dependencies: 8.1, 8.2
+### Description: Implement a variety of evasive maneuvers for AI aircraft to use when under attack
+### Details:
+Design a set of predefined evasive maneuvers (barrel rolls, split-S, dive, etc.). Create logic to select appropriate maneuvers based on the attack direction and current aircraft state. Implement transition logic between evasive actions and other states. Add cooldown timers to prevent maneuver spamming. Test these maneuvers in isolation before integrating with the main state machine.
+
+## 5. Implement formation flying capabilities [pending]
+### Dependencies: 8.2
+### Description: Create a system for multiple AI aircraft to fly in coordinated formations
+### Details:
+Design different formation patterns (V-formation, echelon, line abreast, etc.). Implement relative positioning calculations for formation slots. Create leader-follower dynamics where formation members maintain position relative to a leader. Add formation-wide behavior commands that coordinate group actions. Include collision avoidance between formation members. Test with increasing numbers of AI aircraft to ensure performance.
+
+## 6. Add performance limitations and flight physics constraints [pending]
+### Dependencies: 8.2, 8.3, 8.4
+### Description: Ensure AI aircraft follow the same physical limitations and rules as player aircraft
+### Details:
+Implement realistic flight envelope limitations (max speed, turn rate, climb rate, etc.). Create energy management logic so AI considers aircraft energy state when maneuvering. Add g-force limitations to prevent unrealistic maneuvers. Implement fuel consumption and ammunition limitations. Test AI performance against player aircraft with identical specifications to ensure fairness.
+
+## 7. Implement difficulty levels affecting AI behavior [pending]
+### Dependencies: 8.1, 8.3, 8.4, 8.6
+### Description: Create a system to adjust AI capabilities based on selected difficulty level
+### Details:
+Design a difficulty scaling system with at least three levels (easy, medium, hard). Implement parameters that adjust with difficulty: reaction time, targeting accuracy, maneuver aggressiveness, formation discipline, and tactical decision making. Create configuration profiles for each difficulty level. Add randomization factors to create variety in AI behavior even within the same difficulty. Test extensively to ensure appropriate challenge at each level.
+

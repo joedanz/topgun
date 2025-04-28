@@ -1,0 +1,49 @@
+# Task ID: 4
+# Title: Develop aircraft model and state system
+# Status: pending
+# Dependencies: 3
+# Priority: high
+# Description: Create the core aircraft class with state management and integration with the physics engine.
+# Details:
+Design an Aircraft class that manages position, rotation, velocity, and acceleration. Implement methods for applying thrust, roll, pitch, and yaw. Create a state machine for aircraft conditions (normal, damaged, destroyed). Integrate with Ammo.js for physics simulation. Add support for different aircraft types with varying performance characteristics. Implement a camera system that follows the aircraft with appropriate offsets and smoothing.
+
+# Test Strategy:
+Test aircraft movement in all axes. Verify that physics integration produces realistic flight behavior. Ensure the state system correctly transitions between states based on game events.
+
+# Subtasks:
+## 1. Create basic Aircraft class with properties [pending]
+### Dependencies: None
+### Description: Implement the core Aircraft class with essential properties for position, rotation, velocity, and acceleration
+### Details:
+Define the Aircraft class with properties for position (Vector3), rotation (Quaternion), velocity (Vector3), acceleration (Vector3), mass, and aircraft type. Include getters and setters for these properties. Create a constructor that initializes these values with defaults or from parameters. Implement basic methods for updating position and rotation based on physics calculations.
+
+## 2. Implement aircraft control methods [pending]
+### Dependencies: 4.1
+### Description: Add methods to control the aircraft through thrust, roll, pitch, and yaw inputs
+### Details:
+Create methods for applyThrust(amount), applyRoll(amount), applyPitch(amount), and applyYaw(amount) that modify the aircraft's acceleration and rotation based on input values. Implement a processControls(deltaTime) method that applies all control inputs and updates the aircraft state accordingly. Add helper methods to calculate forces and torques based on the aircraft's current state and control inputs.
+
+## 3. Create aircraft state machine [pending]
+### Dependencies: 4.1
+### Description: Implement a state system to manage different aircraft conditions (normal, damaged, destroyed)
+### Details:
+Define an enum or constants for aircraft states (NORMAL, DAMAGED, DESTROYED). Add a state property to the Aircraft class. Implement methods for transitioning between states: damage(amount), repair(amount), and destroy(). Create a handleStateEffects() method that applies different physics behaviors based on the current state (e.g., reduced control effectiveness when damaged, no control when destroyed). Add event listeners or callbacks that trigger when state changes occur.
+
+## 4. Integrate with Ammo.js physics engine [pending]
+### Dependencies: 4.1, 4.2
+### Description: Connect the Aircraft class with the Ammo.js physics engine for realistic simulation
+### Details:
+Create a physical representation of the aircraft using Ammo.js rigid bodies. Implement methods to synchronize the Aircraft class properties with the physics engine (updatePhysics() and updateFromPhysics()). Add collision detection and response using Ammo.js collision callbacks. Create methods to apply external forces (like wind or impacts) to the aircraft through the physics engine. Ensure the physics simulation respects the aircraft's mass and aerodynamic properties.
+
+## 5. Implement aircraft type system with performance profiles [pending]
+### Dependencies: 4.2, 4.4
+### Description: Create a system for defining different aircraft types with varying performance characteristics
+### Details:
+Design an AircraftType class or data structure that defines performance parameters (max speed, thrust, turn rates, etc.). Create several predefined aircraft types (fighter, bomber, etc.) with appropriate performance values. Modify the Aircraft class to load and use these performance profiles. Implement methods that limit control inputs based on the aircraft type's capabilities. Add visual model selection based on aircraft type.
+
+## 6. Develop aircraft camera system [pending]
+### Dependencies: 4.1, 4.4
+### Description: Create a camera system that follows the aircraft with appropriate offsets and smoothing
+### Details:
+Implement a CameraController class that takes an Aircraft instance and a camera object. Create methods for different camera modes (chase, cockpit, external, etc.) with appropriate position and rotation offsets. Add smoothing algorithms to prevent jerky camera movement. Implement collision detection for the camera to prevent it from going through terrain. Add methods to transition between different camera modes with smooth interpolation. Create a system for camera shake effects during high-G maneuvers or damage events.
+
