@@ -13,14 +13,21 @@ export function createEnemyAIStates(enemy, config = {}) {
       },
       onUpdate(dt) {
         // Move toward current waypoint
-        if (!enemy.patrolRoute || enemy.patrolRoute.length === 0) return;
-        const wp = enemy.patrolRoute[enemy.currentWaypointIndex];
+        const wp = enemy.getCurrentWaypoint && enemy.getCurrentWaypoint();
+        if (!wp) return;
         const toWP = wp.clone().sub(enemy.position);
-        if (toWP.length() < (config.waypointRadius || 80)) {
-          enemy.currentWaypointIndex = (enemy.currentWaypointIndex + 1) % enemy.patrolRoute.length;
+        const waypointRadius = config.waypointRadius || 80;
+        if (toWP.length() < waypointRadius) {
+          enemy.advanceWaypoint && enemy.advanceWaypoint();
         } else {
-          // Basic steering toward waypoint
-          enemy.steerTowards(wp, dt);
+          // Smooth steering and throttle toward waypoint
+          enemy.steerTowards(wp, dt, false);
+          // Optionally clamp speed here for patrol
+          if (enemy.getSpeed && typeof config.patrolSpeed === 'number') {
+            if (enemy.getSpeed() > config.patrolSpeed) {
+              enemy.applyThrust(-4000); // slow down gently
+            }
+          }
         }
         // Transition to engage if player in range/LOS
         if (enemy.canSeePlayer && enemy.distanceToPlayer() < (config.engageDistance || 1200)) {
