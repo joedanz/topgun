@@ -187,9 +187,61 @@ export default class EnemyAircraft extends Aircraft {
     return this.distanceToPlayer() < 1200 && forward.dot(toPlayer) > 0.85;
   }
 
+  /**
+   * Predicts the intercept point for a moving target, given projectile speed.
+   * @param {THREE.Vector3} targetPos - Current position of the target.
+   * @param {THREE.Vector3} targetVel - Current velocity of the target.
+   * @param {number} projectileSpeed - Speed of the projectile (m/s)
+   * @returns {THREE.Vector3} The predicted intercept position.
+   */
+  computeInterceptPoint(targetPos, targetVel, projectileSpeed) {
+    // Relative position and velocity
+    const shooterPos = this.position.clone();
+    const shooterVel = this.velocity ? this.velocity.clone() : new THREE.Vector3();
+    const relPos = targetPos.clone().sub(shooterPos);
+    const relVel = targetVel.clone().sub(shooterVel);
+    const relSpeedSq = relVel.lengthSq();
+    const projSpeedSq = projectileSpeed * projectileSpeed;
+
+    // Quadratic: a*t^2 + b*t + c = 0
+    const a = relSpeedSq - projSpeedSq;
+    const b = 2 * relPos.dot(relVel);
+    const c = relPos.lengthSq();
+    // Solve for t (time to intercept)
+    const discriminant = b * b - 4 * a * c;
+    let t;
+    if (a === 0) {
+      // Linear case
+      t = -c / b;
+    } else if (discriminant >= 0) {
+      const sqrtDisc = Math.sqrt(discriminant);
+      const t1 = (-b + sqrtDisc) / (2 * a);
+      const t2 = (-b - sqrtDisc) / (2 * a);
+      t = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+    } else {
+      // No real solution, fallback to aiming at current position
+      t = 0;
+    }
+    t = Math.max(0, t || 0);
+    // Predicted position
+    return targetPos.clone().add(relVel.clone().multiplyScalar(t));
+  }
+
   fireWeaponAtPlayer() {
-    // Use base fireWeapon, pass player as target if missile
-    this.setLockedTarget(window.playerAircraft);
+    // Predictive targeting: aim at intercept point
+    const player = window.playerAircraft;
+    if (!player) return;
+    // Estimate projectile speed: use equipped weapon or default
+    let projectileSpeed = 600; // Default fallback (m/s)
+    if (this.equippedWeapon && this.equippedWeapon.projectileType && this.equippedWeapon.projectileType.speed) {
+      projectileSpeed = this.equippedWeapon.projectileType.speed;
+    } else if (this.equippedWeapon && this.equippedWeapon.speed) {
+      projectileSpeed = this.equippedWeapon.speed;
+    }
+    const targetPos = player.position.clone();
+    const targetVel = player.velocity ? player.velocity.clone() : new THREE.Vector3();
+    const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
+    this.setLockedTarget(intercept);
     this.fireWeapon();
   }
 
