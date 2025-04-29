@@ -1,0 +1,81 @@
+/* src/components/HUD.css */
+.hud-container {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 24px 32px;
+  pointer-events: none;
+  z-index: 100;
+}
+.hud-block {
+  background: rgba(24,28,36,0.72);
+  border-radius: 12px;
+  margin: 0 10px;
+  padding: 12px 22px;
+  color: #e0f2ff;
+  font-family: 'Orbitron', 'Roboto Mono', monospace;
+  font-size: 1.25em;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.18);
+  min-width: 70px;
+  text-align: center;
+  transition: background 0.2s;
+}
+.hud-label {
+  display: block;
+  font-size: 0.8em;
+  color: #8ed0ff;
+  margin-bottom: 2px;
+  letter-spacing: 0.06em;
+}
+.hud-value {
+  font-weight: bold;
+  font-size: 1.35em;
+}
+.hud-unit {
+  font-size: 0.65em;
+  margin-left: 2px;
+  color: #b0e0ff;
+}
+.hud-icon {
+  font-size: 1.4em;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.hud-health {
+  min-width: 120px;
+}
+.hud-health-bar {
+  width: 100%;
+  height: 10px;
+  background: linear-gradient(90deg, #0f0 0%, #ff0 50%, #f00 100%);
+  border-radius: 6px;
+  margin: 4px 0 2px 0;
+  position: relative;
+}
+.hud-health-fill {
+  height: 100%;
+  background: transparent;
+  border-radius: 6px;
+  position: absolute;
+  left: 0; top: 0;
+  bottom: 0;
+  transition: width 0.2s;
+}
+@media (max-width: 600px) {
+  .hud-container {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 8px;
+  }
+  .hud-block {
+    margin: 6px 0;
+    padding: 8px 14px;
+    font-size: 1em;
+    min-width: 0;
+  }
+  .hud-health {
+    min-width: 0;
+  }
+}

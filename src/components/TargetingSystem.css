@@ -1,0 +1,98 @@
+/* src/components/TargetingSystem.css */
+.reticle {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 102;
+  opacity: 0.95;
+  transition: filter 0.15s;
+  filter: drop-shadow(0 0 4px #0ffb);
+}
+.reticle-hover {
+  filter: drop-shadow(0 0 8px #ff0b);
+}
+.reticle-pulse {
+  animation: reticle-pulse 0.7s linear infinite;
+}
+@keyframes reticle-pulse {
+  0% { filter: drop-shadow(0 0 8px #ff0b); }
+  50% { filter: drop-shadow(0 0 18px #ff0b); }
+  100% { filter: drop-shadow(0 0 8px #ff0b); }
+}
+.reticle-hit {
+  animation: reticle-hit-flash 0.25s linear 1;
+}
+@keyframes reticle-hit-flash {
+  0% { filter: brightness(2) drop-shadow(0 0 16px #fff); opacity: 1; }
+  100% { filter: brightness(1) drop-shadow(0 0 4px #0ffb); opacity: 0.7; }
+}
+
+.enemy-indicator {
+  position: fixed;
+  pointer-events: none;
+  z-index: 103;
+  transform: translate(-50%, -50%);
+  opacity: 0.85;
+  animation: enemy-blip 0.6s linear alternate infinite;
+}
+.enemy-indicator.in-range svg rect {
+  stroke: #ff0;
+  filter: drop-shadow(0 0 6px #ff0b);
+}
+.lockon-anim {
+  animation: lockon-pulse 0.7s linear infinite;
+}
+@keyframes lockon-pulse {
+  0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1.1); }
+  50% { transform: translate(-50%, -50%) scale(1.12); filter: brightness(1.7); }
+  100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1.1); }
+}
+
+.enemy-distance {
+  display: block;
+  margin-top: 2px;
+  color: #fff;
+  font-size: 0.92em;
+  text-align: center;
+  text-shadow: 0 1px 2px #000b;
+}
+.offscreen-arrow {
+  position: fixed;
+  pointer-events: none;
+  z-index: 103;
+  transform: translate(-50%, -50%);
+  opacity: 0.9;
+  animation: arrow-blink 1s linear alternate infinite;
+}
+.wiggle-anim {
+  animation: wiggle 0.5s ease-in-out infinite;
+}
+@keyframes wiggle {
+  0% { transform: translate(-50%, -50%) rotate(-8deg); }
+  50% { transform: translate(-50%, -50%) rotate(8deg); }
+  100% { transform: translate(-50%, -50%) rotate(-8deg); }
+}
+
+@keyframes enemy-blip {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+@keyframes arrow-blink {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+@media (max-width: 600px) {
+  .reticle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .enemy-indicator, .offscreen-arrow {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .enemy-distance {
+    font-size: 0.8em;
+  }
+}
