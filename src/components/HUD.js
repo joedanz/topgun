@@ -8,8 +8,32 @@ export function HUD({ speed = 0, altitude = 0, currentWeapon = null, weapons = [
     <div className="hud-container">
       <SpeedDisplay speed={speed} />
       <AltitudeDisplay altitude={altitude} />
-      <WeaponDisplay currentWeapon={currentWeapon} weapons={weapons} />
+      <div>
+        <WeaponDisplay currentWeapon={currentWeapon} weapons={weapons} />
+        {/* Show heat bar if weapon has heat system */}
+        {currentWeapon && currentWeapon.maxHeat > 0 && (
+          <HeatBar
+            heat={currentWeapon.heat}
+            maxHeat={currentWeapon.maxHeat}
+            overheated={currentWeapon.overheated}
+          />
+        )}
+      </div>
       <HealthBar health={health} />
+    </div>
+  );
+}
+
+function HeatBar({ heat, maxHeat, overheated }) {
+  const percent = Math.min(1, heat / maxHeat);
+  let color = '#33c3ff'; // cool = blue
+  if (percent > 0.7 && !overheated) color = '#ff9f1c'; // hot = orange
+  if (overheated) color = '#ff2e2e'; // overheated = red
+  return (
+    <div className={`hud-heat-bar hud-block${overheated ? ' overheated' : ''}`}
+         title={overheated ? 'OVERHEATED' : `Heat: ${(percent*100).toFixed(0)}%`}>
+      <span className="hud-label">HEAT</span>
+      <div className="hud-heat-fill" style={{ width: `${percent*100}%`, background: color, boxShadow: overheated ? '0 0 8px 2px #ff2e2e' : undefined }} />
     </div>
   );
 }

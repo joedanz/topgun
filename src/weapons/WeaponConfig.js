@@ -9,6 +9,9 @@ const WeaponConfigs = {
         damageAmount: 10,
         reloadTime: 2.0,
         projectileType: 'bullet',
+        maxHeat: 100,
+        heatPerShot: 7,
+        coolRate: 20,
     },
     Cannon: {
         name: 'Cannon',
@@ -17,6 +20,9 @@ const WeaponConfigs = {
         damageAmount: 50,
         reloadTime: 3.0,
         projectileType: 'shell',
+        maxHeat: 60,
+        heatPerShot: 18,
+        coolRate: 15,
     },
     Missile: {
         name: 'Missile',

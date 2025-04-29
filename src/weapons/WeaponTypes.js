@@ -20,6 +20,13 @@ class MachineGun extends BaseWeapon {
         if (!this.canFire()) return null;
         this.lastFired = performance.now() / 1000;
         this.ammoCount--;
+        // --- Heat/Overheat logic ---
+        if (this.maxHeat > 0) {
+            this.heat += this.heatPerShot;
+            if (this.heat >= this.maxHeat) {
+                this.overheated = true;
+            }
+        }
         // Add random spread
         const spread = 0.01;
         const dir = direction.clone();
@@ -69,6 +76,13 @@ class Cannon extends BaseWeapon {
         if (!this.canFire()) return null;
         this.lastFired = performance.now() / 1000;
         this.ammoCount--;
+        // --- Heat/Overheat logic ---
+        if (this.maxHeat > 0) {
+            this.heat += this.heatPerShot;
+            if (this.heat >= this.maxHeat) {
+                this.overheated = true;
+            }
+        }
         // Add a slight upward arc
         const dir = direction.clone();
         dir.y += 0.05;

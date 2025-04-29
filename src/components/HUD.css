@@ -6,6 +6,38 @@
   - Touch-friendly spacing for mobile
   - See device-specific notes at end
 */
+
+.hud-heat-bar {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  height: 14px;
+  width: 120px;
+  background: rgba(30,40,70,0.68);
+  border-radius: 7px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 6px #0006;
+  transition: background 0.18s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+.hud-heat-fill {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.18s, background 0.18s, box-shadow 0.18s;
+  box-shadow: 0 0 0px 0px transparent;
+}
+.hud-heat-bar.overheated {
+  animation: heat-pulse 0.45s alternate infinite;
+  background: rgba(90,8,8,0.38);
+}
+@keyframes heat-pulse {
+  0% { box-shadow: 0 0 8px 2px #ff2e2e77; }
+  100% { box-shadow: 0 0 16px 6px #ff2e2ecc; }
+}
+
 .hud-container {
   position: fixed;
   left: 0; right: 0; bottom: 0;
