@@ -45,6 +45,9 @@ export function createEnemyAIStates(enemy, config = {}) {
         }
 
         // --- Normal patrol logic below ---
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} patrol: waypoint #${enemy.currentWaypointIndex + 1} at (${wp.x.toFixed(1)}, ${wp.y.toFixed(1)}, ${wp.z.toFixed(1)})`);
+        }
         const toWP = wp.clone().sub(enemy.position);
         const waypointRadius = config.waypointRadius || 80;
         if (toWP.length() < waypointRadius) {
