@@ -1,0 +1,13 @@
+/* src/components/ScreenFlash.css */
+.screen-flash {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(255, 30, 0, 0.28);
+  pointer-events: none;
+  z-index: 9999;
+  animation: screen-flash-fade 0.18s cubic-bezier(.7,-0.4,.7,1.7);
+}
+@keyframes screen-flash-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
