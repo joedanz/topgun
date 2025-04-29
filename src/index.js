@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import ThreeEnvironment from './three/ThreeEnvironment';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -12,6 +13,7 @@ import './components/TargetingSystem.css';
 import { MissionObjectives, NotificationSystem } from './components/MissionObjectives';
 import './components/MissionObjectives.css';
 import { PauseMenu } from './components/PauseMenu';
+import EnemyDebugLabel from './components/EnemyDebugLabel';
 import './components/PauseMenu.css';
 
 const appDiv = document.getElementById('app');
@@ -94,20 +96,61 @@ let lockTimer = 0;
 const LOCK_ON_TIME = 1.2; // seconds to lock
 let lastEnemies = [];
 
-// Utility: Get all valid enemy targets (simulate for now)
+// Utility: Get all valid enemy targets (real EnemyAircraft)
 function getEnemyTargets() {
-  // TODO: Replace with actual enemy list from game state
   if (!window.enemies) return [];
   return window.enemies.map(e => ({
     id: e.id,
-    screenX: e.screenX,
-    screenY: e.screenY,
-    distance: e.distance,
-    onScreen: e.onScreen,
-    inRange: e.inRange,
+    screenX: e.screenX ?? 0,
+    screenY: e.screenY ?? 0,
+    distance: window.playerAircraft ? e.position.distanceTo(window.playerAircraft.position) : 0,
+    onScreen: true, // TODO: set by camera/frustum check
+    inRange: window.playerAircraft ? e.position.distanceTo(window.playerAircraft.position) < 1800 : false,
     ref: e
   }));
 }
+
+// --- Enemy Spawning ---
+import EnemyAircraft from './aircraft/EnemyAircraft';
+
+function spawnEnemies(num = 3) {
+  const enemies = [];
+  for (let i = 0; i < num; ++i) {
+    const enemy = new EnemyAircraft({
+      type: 'MiG',
+      mass: 9000,
+      position: new THREE.Vector3(3000 + i * 500, 12000, -4000 - i * 1200),
+      rotation: new THREE.Quaternion(),
+      patrolRoute: [
+        new THREE.Vector3(3000 + i * 500, 12000, -4000 - i * 1200),
+        new THREE.Vector3(2000 + i * 400, 12500, -6000 - i * 1000),
+        new THREE.Vector3(4000 + i * 300, 11800, -3000 - i * 800)
+      ],
+      aiConfig: {
+        engageDistance: 1200,
+        evadeDistance: 350,
+        waypointRadius: 100
+      }
+    });
+    enemy.id = 'enemy-' + i;
+    enemies.push(enemy);
+  }
+  window.enemies = enemies;
+}
+
+spawnEnemies(3);
+
+// --- Enemy AI update in main game loop ---
+function updateEnemies(dt, gameContext = {}) {
+  if (!window.enemies) return;
+  for (const enemy of window.enemies) {
+    enemy.update(dt, gameContext);
+  }
+}
+
+// Example: Call updateEnemies in your main game loop (not shown here)
+// updateEnemies(dt, { player: window.playerAircraft });
+
 
 // Target cycling (manual mode)
 window.cycleTarget = (dir = 1) => {
@@ -339,8 +382,16 @@ function OverlayRoot() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+  // Debug overlay for enemy AI state
+  let enemyLabels = null;
+  if (typeof window !== 'undefined' && window.DEBUG_AI_STATE && window.enemies && window.enemies.length) {
+    enemyLabels = window.enemies.map(enemy => (
+      <EnemyDebugLabel key={enemy.id} enemy={enemy} camera={threeEnv.camera} label={enemy.stateDebug || enemy.stateName || '?'} />
+    ));
+  }
   return (
     <>
+      {enemyLabels}
       <HitMarker trigger={hitMarkerTrigger} />
       <HUDOverlayEffects damageTrigger={damageFlash} onShake={handleShake} />
       <TargetingDemo />
@@ -371,8 +422,13 @@ function OverlayRoot() {
 targetingRoot.render(<OverlayRoot />);
 
 
+let lastFrameTime = performance.now();
 function animate() {
   requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = (now - lastFrameTime) / 1000;
+  lastFrameTime = now;
+  updateEnemies(dt, { player: window.playerAircraft });
   threeEnv.render();
 }
 animate();
