@@ -111,14 +111,41 @@ export default class EnemyAircraft extends Aircraft {
   canDetectPlayer() {
     // Returns true if player is within FOV and range
     if (typeof window === 'undefined' || !window.playerAircraft) return false;
-    const playerPos = window.playerAircraft.position;
-    const toPlayer = playerPos.clone().sub(this.position);
-    const dist = toPlayer.length();
+    return this.canDetectTarget(window.playerAircraft);
+  }
+
+  canDetectTarget(target) {
+    if (!target || !target.position) return false;
+    const toTarget = target.position.clone().sub(this.position);
+    const dist = toTarget.length();
     if (dist > this.detectionRange) return false;
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
-    const dirToPlayer = toPlayer.clone().normalize();
-    const angle = Math.acos(forward.dot(dirToPlayer));
+    const dirToTarget = toTarget.clone().normalize();
+    const angle = Math.acos(forward.dot(dirToTarget));
     return angle < this.fieldOfView / 2;
+  }
+
+  acquireTarget(targets) {
+    let best = null, bestScore = Infinity;
+    if (!targets || !Array.isArray(targets)) return null;
+    for (const t of targets) {
+      if (this.canDetectTarget(t)) {
+        const d = this.position.distanceTo(t.position);
+        if (d < bestScore) {
+          best = t;
+          bestScore = d;
+        }
+      }
+    }
+    this.currentTarget = best;
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      if (best) {
+        console.log(`[AI] ${this.id} acquired target: ${best.id || '[unknown]'} @ ${best.position ? best.position.toArray().map(x=>x.toFixed(1)).join(',') : '?'}`);
+      } else {
+        console.log(`[AI] ${this.id} found no valid targets.`);
+      }
+    }
+    return best;
   }
 
   updateDetection(dt) {
