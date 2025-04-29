@@ -80,9 +80,27 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   steerTowards(target, dt, aggressive = false) {
+    // If target is an object with position and velocity (e.g., player), try to lead
+    let aimPoint = null;
+    if (target && target.position && target.velocity && this.getCurrentWeapon) {
+      // Use projectile speed from current weapon if available
+      let projectileSpeed = 600;
+      const weapon = this.getCurrentWeapon ? this.getCurrentWeapon() : null;
+      if (weapon && weapon.projectileType && weapon.projectileType.speed) {
+        projectileSpeed = weapon.projectileType.speed;
+      } else if (weapon && weapon.speed) {
+        projectileSpeed = weapon.speed;
+      }
+      aimPoint = this.computeInterceptPoint(target.position, target.velocity, projectileSpeed);
+    } else if (target && target.position) {
+      aimPoint = target.position.clone();
+    } else if (target instanceof THREE.Vector3) {
+      aimPoint = target.clone();
+    }
+    if (!aimPoint) return;
     // Calculate desired direction
-    const toTarget = target.clone().sub(this.position);
-    toTarget.y = target.y - this.position.y;
+    const toTarget = aimPoint.clone().sub(this.position);
+    toTarget.y = aimPoint.y - this.position.y;
     const desiredDir = toTarget.clone().normalize();
     // Interpolate current forward to desired direction
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation);
