@@ -106,49 +106,9 @@ class Cannon extends BaseWeapon {
 
 export default Cannon;
 
-// Missile.js
-import BaseWeapon from './BaseWeapon.js';
-import WeaponConfigs from './WeaponConfig.js';
-import BaseProjectile from './Projectile.js';
-import * as THREE from 'three';
-
-class Missile extends BaseWeapon {
-    constructor(options) {
-        super(WeaponConfigs.Missile);
-        this.scene = options.scene;
-        this.ammoWorld = options.ammoWorld;
-    }
-
-    /**
-     * Fire a guided missile at a target.
-     * @param {THREE.Vector3} position
-     * @param {THREE.Vector3} direction
-     * @param {object} target
-     */
-    Fire(position, direction, target) {
-        if (!this.canFire()) return null;
-        this.lastFired = performance.now() / 1000;
-        this.ammoCount--;
-        const projectile = new BaseProjectile({
-            type: 'missile',
-            position: position.clone(),
-            direction: direction.clone(),
-            speed: 220,
-            damage: this.damageAmount,
-            scene: this.scene,
-            ammoWorld: this.ammoWorld,
-            target: target,
-        });
-        // Guided logic: to be implemented in projectile update
-        return projectile;
-    }
-
-    Reload() {
-        this.ammoCount = WeaponConfigs.Missile.ammoCount;
-    }
-}
-
-export default Missile;
+// IRMissile and RadarMissile from Missile.js
+import { IRMissile, RadarMissile } from './Missile.js';
+// No default export for Missile; use IRMissile and RadarMissile instead.
 
 // RocketPod.js
 import BaseWeapon from './BaseWeapon.js';

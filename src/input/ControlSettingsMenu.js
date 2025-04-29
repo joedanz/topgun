@@ -34,6 +34,24 @@ export class ControlSettingsMenu {
     title.style.fontSize = '1.3em';
     this.menu.appendChild(title);
 
+    // Lock-On Mode Toggle
+    const lockOnLabel = document.createElement('label');
+    lockOnLabel.textContent = 'Lock-On Mode:';
+    const lockOnSelect = document.createElement('select');
+    ['Manual', 'Automatic'].forEach(mode => {
+      const opt = document.createElement('option');
+      opt.value = mode.toLowerCase();
+      opt.textContent = mode;
+      lockOnSelect.appendChild(opt);
+    });
+    // Load from localStorage or default to manual
+    lockOnSelect.value = localStorage.getItem('lockOnMode') || 'manual';
+    lockOnSelect.onchange = () => {
+      localStorage.setItem('lockOnMode', lockOnSelect.value);
+    };
+    lockOnLabel.appendChild(lockOnSelect);
+    this.menu.appendChild(lockOnLabel);
+
     // Scheme selector
     const schemeLabel = document.createElement('label');
     schemeLabel.textContent = 'Control Scheme:';

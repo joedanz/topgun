@@ -102,12 +102,14 @@ export default class Aircraft {
   }
 
   /**
-   * Equip a list of weapon instances.
+   * Equip a list of weapon instances (including IRMissile/RadarMissile).
    * @param {Array} weaponList
    */
   equipWeapons(weaponList) {
     this.weapons = weaponList;
     this.currentWeaponIndex = 0;
+    // Optionally, clear locked target when weapons change
+    this.lockedTarget = null;
   }
 
   /**
@@ -129,14 +131,17 @@ export default class Aircraft {
 
   /**
    * Fire the current weapon. Returns projectile(s) or null if cannot fire.
+   * Passes locked target to missile weapons if required.
    */
   fireWeapon() {
     if (this.weapons.length === 0) return null;
     const weapon = this.weapons[this.currentWeaponIndex];
-    // Aircraft's forward direction (Z negative in Three.js)
     const position = this.position.clone();
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
-    // Some weapons (e.g., missile) may require a target; handle externally if needed
+    // If weapon is a missile and needs a target, pass lockedTarget
+    if (weapon && (weapon.guidanceType === 'ir' || weapon.guidanceType === 'radar')) {
+      return weapon.Fire(position, forward, this.lockedTarget || null);
+    }
     return weapon.Fire(position, forward);
   }
 
@@ -163,6 +168,14 @@ export default class Aircraft {
   getCurrentWeaponAmmo() {
     const weapon = this.getCurrentWeapon();
     return weapon ? weapon.ammoCount : 0;
+  }
+
+  /**
+   * Set the currently locked target for guided missiles.
+   * @param {Object} target
+   */
+  setLockedTarget(target) {
+    this.lockedTarget = target;
   }
 
   // --- Getters & Setters ---
