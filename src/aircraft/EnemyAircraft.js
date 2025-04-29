@@ -227,12 +227,66 @@ export default class EnemyAircraft extends Aircraft {
     return targetPos.clone().add(relVel.clone().multiplyScalar(t));
   }
 
+  /**
+   * Selects the optimal weapon for the current target based on range, angle, ammo, and cooldown.
+   * Sets this.currentWeaponIndex to the selected weapon, or leaves unchanged if none valid.
+   * @param {THREE.Vector3} intercept - Predicted intercept position for aiming.
+   * @returns {boolean} True if a weapon was selected, false otherwise.
+   */
+  selectWeaponForTarget(intercept) {
+    if (!this.weapons || this.weapons.length === 0) return false;
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+    const toIntercept = intercept.clone().sub(this.position);
+    const dist = toIntercept.length();
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
+    const dirToIntercept = toIntercept.clone().normalize();
+    const angle = Math.acos(forward.dot(dirToIntercept));
+    for (let i = 0; i < this.weapons.length; ++i) {
+      const w = this.weapons[i];
+      // Range check
+      if (typeof w.range === 'number' && dist > w.range) continue;
+      // Angle check (default 20 deg cone if not specified)
+      const maxAngle = (typeof w.firingCone === 'number' ? w.firingCone : (20 * Math.PI / 180));
+      if (angle > maxAngle) continue;
+      // Ammo check
+      if (typeof w.ammoCount === 'number' && w.ammoCount <= 0) continue;
+      // Cooldown check (assume has isReady or ready property, fallback true)
+      if (typeof w.isReady === 'function' && !w.isReady()) continue;
+      if (typeof w.ready === 'boolean' && !w.ready) continue;
+      // Score: prefer missiles at long range, guns at short
+      let score = 0;
+      if (w.type === 'missile') {
+        score += 20;
+        if (dist > 700) score += 10;
+      } else if (w.type === 'gun') {
+        score += 10;
+        if (dist < 400) score += 5;
+      }
+      // Prefer higher ammo
+      if (typeof w.ammoCount === 'number') score += w.ammoCount;
+      // Prefer ready weapons
+      if (typeof w.isReady === 'function' && w.isReady()) score += 2;
+      if (typeof w.ready === 'boolean' && w.ready) score += 2;
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx >= 0) {
+      this.currentWeaponIndex = bestIdx;
+      this.equippedWeapon = this.weapons[bestIdx];
+      return true;
+    }
+    return false;
+  }
+
   fireWeaponAtPlayer() {
     // Predictive targeting: aim at intercept point
     const player = window.playerAircraft;
     if (!player) return;
-    // Estimate projectile speed: use equipped weapon or default
-    let projectileSpeed = 600; // Default fallback (m/s)
+    // Use currently equipped weapon or fallback for projectile speed
+    let projectileSpeed = 600;
     if (this.equippedWeapon && this.equippedWeapon.projectileType && this.equippedWeapon.projectileType.speed) {
       projectileSpeed = this.equippedWeapon.projectileType.speed;
     } else if (this.equippedWeapon && this.equippedWeapon.speed) {
@@ -241,7 +295,18 @@ export default class EnemyAircraft extends Aircraft {
     const targetPos = player.position.clone();
     const targetVel = player.velocity ? player.velocity.clone() : new THREE.Vector3();
     const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
-    this.setLockedTarget(intercept);
+    // Select best weapon for this intercept
+    if (!this.selectWeaponForTarget(intercept)) return; // No valid weapon
+    // Recompute projectile speed for selected weapon
+    const weapon = this.weapons[this.currentWeaponIndex];
+    if (weapon && weapon.projectileType && weapon.projectileType.speed) {
+      projectileSpeed = weapon.projectileType.speed;
+    } else if (weapon && weapon.speed) {
+      projectileSpeed = weapon.speed;
+    }
+    // Recompute intercept if weapon changed
+    const newIntercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
+    this.setLockedTarget(newIntercept);
     this.fireWeapon();
   }
 
