@@ -16,6 +16,15 @@ export class DesktopInputMapper extends InputMapper {
       'ArrowLeft': 'moveLeft',
       'ArrowRight': 'moveRight',
       'Space': 'fire',
+      // Weapon switching
+      'KeyQ': 'prevWeapon',
+      'KeyE': 'nextWeapon',
+      'Tab': 'nextWeapon',
+      'ShiftLeft': 'prevWeapon',
+      'Digit1': 'selectWeapon1',
+      'Digit2': 'selectWeapon2',
+      'Digit3': 'selectWeapon3',
+      'Digit4': 'selectWeapon4',
     };
     this.heldKeys = new Set();
     this.mouseState = { dx: 0, dy: 0, active: false };

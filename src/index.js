@@ -57,6 +57,32 @@ function renderHUD() {
 renderHUD();
 // Optionally, call renderHUD() in your game loop or after weapon changes to update HUD
 
+// --- Weapon Switching Input Integration ---
+if (window.inputHandler) {
+  // Next/Prev weapon
+  window.inputHandler.onInput('nextWeapon', (pressed) => {
+    if (pressed && window.playerAircraft) {
+      window.playerAircraft.switchWeapon(+1);
+      renderHUD();
+    }
+  });
+  window.inputHandler.onInput('prevWeapon', (pressed) => {
+    if (pressed && window.playerAircraft) {
+      window.playerAircraft.switchWeapon(-1);
+      renderHUD();
+    }
+  });
+  // Direct weapon selection (number keys)
+  for (let i = 1; i <= 4; ++i) {
+    window.inputHandler.onInput(`selectWeapon${i}`, (pressed) => {
+      if (pressed && window.playerAircraft) {
+        window.playerAircraft.switchWeapon(i - 1);
+        renderHUD();
+      }
+    });
+  }
+}
+
 // Mount TargetingSystem overlay (above HUD)
 const targetingDiv = document.createElement('div');
 targetingDiv.id = 'targeting-root';
