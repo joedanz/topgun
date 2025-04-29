@@ -8,7 +8,7 @@ import './TargetingSystem.css';
  */
 import { useEffect, useRef, useState } from 'react';
 
-export function TargetingSystem({ enemies = [], hoverTarget = false, hitMarker = false, soundEnabled = false }) {
+export function TargetingSystem({ enemies = [], hoverTarget = false, hitMarker = false, soundEnabled = false, lockedTargetId = null, lockStatus = 'none', lockProgress = 0, onSetLockedTarget }) {
   // Play lock-on sound when an enemy enters inRange
   const prevInRangeIds = useRef(new Set());
   useEffect(() => {
@@ -25,10 +25,23 @@ export function TargetingSystem({ enemies = [], hoverTarget = false, hitMarker =
 
   return (
     <>
-      <Reticle hover={hoverTarget} pulse={enemies.some(e => e.inRange)} hitMarker={hitMarker} />
+      <Reticle
+        hover={hoverTarget}
+        pulse={lockStatus === 'locking' || lockStatus === 'locked'}
+        hitMarker={hitMarker}
+        lockStatus={lockStatus}
+        lockProgress={lockProgress}
+      />
       {enemies.map(enemy =>
         enemy.onScreen ? (
-          <EnemyIndicator key={enemy.id} {...enemy} />
+          <EnemyIndicator
+            key={enemy.id}
+            {...enemy}
+            locked={lockedTargetId === enemy.id}
+            lockStatus={lockedTargetId === enemy.id ? lockStatus : undefined}
+            lockProgress={lockedTargetId === enemy.id ? lockProgress : undefined}
+            onClick={() => onSetLockedTarget && onSetLockedTarget(enemy.id)}
+          />
         ) : (
           <OffscreenArrow key={enemy.id} {...enemy} />
         )
@@ -38,7 +51,7 @@ export function TargetingSystem({ enemies = [], hoverTarget = false, hitMarker =
 }
 
 
-function Reticle({ hover, pulse, hitMarker }) {
+function Reticle({ hover, pulse, hitMarker, lockStatus, lockProgress }) {
   // SVG reticle, pulses when enemy in range, flashes on hit
   const [showHit, setShowHit] = useState(false);
   useEffect(() => {
@@ -48,6 +61,7 @@ function Reticle({ hover, pulse, hitMarker }) {
       return () => clearTimeout(t);
     }
   }, [hitMarker]);
+  // Lock-on progress ring and status
   return (
     <svg className={`reticle${hover ? ' reticle-hover' : ''}${pulse ? ' reticle-pulse' : ''}${showHit ? ' reticle-hit' : ''}`} width="80" height="80" viewBox="0 0 80 80">
       <circle cx="40" cy="40" r="22" stroke={hover ? '#ff0' : '#0ff'} strokeWidth="2.5" fill="none" />
@@ -57,19 +71,52 @@ function Reticle({ hover, pulse, hitMarker }) {
       <line x1="10" y1="40" x2="26" y2="40" stroke={hover ? '#ff0' : '#0ff'} strokeWidth="2" />
       <line x1="54" y1="40" x2="70" y2="40" stroke={hover ? '#ff0' : '#0ff'} strokeWidth="2" />
       {showHit && <circle cx="40" cy="40" r="28" stroke="#fff" strokeWidth="4" fill="none" opacity="0.7" />}
+      {/* Lock-on progress ring */}
+      {lockStatus && lockStatus !== 'none' && (
+        <circle
+          cx="40"
+          cy="40"
+          r="28"
+          stroke={lockStatus === 'locked' ? '#0f0' : '#ff0'}
+          strokeWidth="3"
+          fill="none"
+          opacity={lockStatus === 'locked' ? 1 : 0.7}
+          strokeDasharray={2 * Math.PI * 28}
+          strokeDashoffset={2 * Math.PI * 28 * (1 - (lockProgress || 0))}
+        />
+      )}
+      {/* Lock status text */}
+      {lockStatus && lockStatus !== 'none' && (
+        <text x="40" y="75" textAnchor="middle" fill={lockStatus === 'locked' ? '#0f0' : '#ff0'} fontSize="13" fontWeight="bold">
+          {lockStatus === 'locked' ? 'LOCKED' : lockStatus === 'locking' ? 'LOCKING' : 'LOST'}
+        </text>
+      )}
     </svg>
   );
 }
 
 
-function EnemyIndicator({ screenX, screenY, distance, inRange }) {
+function EnemyIndicator({ screenX, screenY, distance, inRange, locked, lockStatus, lockProgress, onClick }) {
   // On-screen enemy: show a box with distance, animate lock-on
   return (
-    <div className={`enemy-indicator${inRange ? ' in-range lockon-anim' : ''}`} style={{ left: screenX, top: screenY }}>
+    <div
+      className={`enemy-indicator${inRange ? ' in-range lockon-anim' : ''}${locked ? ' locked' : ''}`}
+      style={{ left: screenX, top: screenY, borderColor: locked ? (lockStatus === 'locked' ? '#0f0' : '#ff0') : undefined }}
+      onClick={onClick}
+      title={locked ? (lockStatus === 'locked' ? 'LOCKED' : 'Locking...') : undefined}
+    >
       <svg width="36" height="36" viewBox="0 0 36 36">
-        <rect x="2" y="2" width="32" height="32" rx="7" stroke="#f00" strokeWidth="2.5" fill="none" />
+        <rect x="2" y="2" width="32" height="32" rx="7" stroke={locked ? (lockStatus === 'locked' ? '#0f0' : '#ff0') : '#f00'} strokeWidth="2.5" fill="none" />
       </svg>
       <span className="enemy-distance">{distance.toFixed(0)}m</span>
+      {locked && lockStatus && (
+        <span className="lock-status" style={{ color: lockStatus === 'locked' ? '#0f0' : '#ff0', fontWeight: 'bold', fontSize: '12px' }}>
+          {lockStatus === 'locked' ? 'LOCKED' : 'LOCKING'}
+        </span>
+      )}
+      {locked && typeof lockProgress === 'number' && lockStatus !== 'locked' && (
+        <div className="lock-progress-bar" style={{ width: `${lockProgress * 100}%`, background: '#ff0', height: '3px', marginTop: '2px' }} />
+      )}
     </div>
   );
 }

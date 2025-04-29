@@ -83,6 +83,95 @@ if (window.inputHandler) {
   }
 }
 
+// --- Lock-On Targeting Logic ---
+let lockOnMode = localStorage.getItem('lockOnMode') || 'manual';
+window.setLockOnMode = mode => { lockOnMode = mode; localStorage.setItem('lockOnMode', mode); };
+
+let lockedTargetId = null;
+let lockStatus = 'none'; // 'none' | 'locking' | 'locked' | 'lost'
+let lockProgress = 0;
+let lockTimer = 0;
+const LOCK_ON_TIME = 1.2; // seconds to lock
+let lastEnemies = [];
+
+// Utility: Get all valid enemy targets (simulate for now)
+function getEnemyTargets() {
+  // TODO: Replace with actual enemy list from game state
+  if (!window.enemies) return [];
+  return window.enemies.map(e => ({
+    id: e.id,
+    screenX: e.screenX,
+    screenY: e.screenY,
+    distance: e.distance,
+    onScreen: e.onScreen,
+    inRange: e.inRange,
+    ref: e
+  }));
+}
+
+// Target cycling (manual mode)
+window.cycleTarget = (dir = 1) => {
+  const enemies = getEnemyTargets().filter(e => e.onScreen);
+  if (enemies.length === 0) return;
+  const idx = enemies.findIndex(e => e.id === lockedTargetId);
+  let nextIdx = (idx + dir + enemies.length) % enemies.length;
+  lockedTargetId = enemies[nextIdx].id;
+  lockStatus = 'locking';
+  lockProgress = 0;
+  lockTimer = 0;
+};
+
+// Main targeting update (call in game loop)
+function updateTargeting(dt) {
+  const enemies = getEnemyTargets();
+  let nextTargetId = lockedTargetId;
+  // Auto mode: pick closest in reticle
+  if (lockOnMode === 'automatic') {
+    const onscreen = enemies.filter(e => e.onScreen && e.inRange);
+    if (onscreen.length > 0) {
+      const closest = onscreen.reduce((a, b) => (a.distance < b.distance ? a : b));
+      nextTargetId = closest.id;
+    } else {
+      nextTargetId = null;
+    }
+  }
+  // Manual: keep current unless lost
+  if (nextTargetId && enemies.some(e => e.id === nextTargetId && e.onScreen && e.inRange)) {
+    if (lockStatus !== 'locked') {
+      lockStatus = 'locking';
+      lockTimer += dt;
+      lockProgress = Math.min(1, lockTimer / LOCK_ON_TIME);
+      if (lockProgress >= 1) {
+        lockStatus = 'locked';
+        lockProgress = 1;
+      }
+    }
+  } else {
+    lockStatus = 'none';
+    lockProgress = 0;
+    lockTimer = 0;
+    nextTargetId = null;
+  }
+  lockedTargetId = nextTargetId;
+  // Update player aircraft's locked target
+  if (window.playerAircraft && lockedTargetId) {
+    const targetObj = enemies.find(e => e.id === lockedTargetId)?.ref;
+    window.playerAircraft.setLockedTarget(targetObj);
+  } else if (window.playerAircraft) {
+    window.playerAircraft.setLockedTarget(null);
+  }
+}
+
+// --- Targeting Input ---
+if (window.inputHandler) {
+  window.inputHandler.onInput('nextTarget', (pressed) => {
+    if (pressed && lockOnMode === 'manual') window.cycleTarget(+1);
+  });
+  window.inputHandler.onInput('prevTarget', (pressed) => {
+    if (pressed && lockOnMode === 'manual') window.cycleTarget(-1);
+  });
+}
+
 // Mount TargetingSystem overlay (above HUD)
 const targetingDiv = document.createElement('div');
 targetingDiv.id = 'targeting-root';
@@ -95,18 +184,38 @@ targetingDiv.style.pointerEvents = 'none';
 targetingDiv.style.zIndex = 110;
 document.body.appendChild(targetingDiv);
 
-
 const targetingRoot = createRoot(targetingDiv);
 function TargetingDemo() {
   const [hit, setHit] = useState(false);
   const [tick, setTick] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [targetingState, setTargetingState] = useState({
+    lockedTargetId: null,
+    lockStatus: 'none',
+    lockProgress: 0,
+    enemies: [],
+  });
+
+  // Main targeting update (simulate game loop)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTick(t => t + 1);
-      setHit(h => !h);
-    }, 2000);
-    return () => clearInterval(interval);
+    let lastTime = performance.now();
+    let running = true;
+    function loop() {
+      if (!running) return;
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      updateTargeting(dt);
+      setTargetingState({
+        lockedTargetId,
+        lockStatus,
+        lockProgress,
+        enemies: getEnemyTargets(),
+      });
+      requestAnimationFrame(loop);
+    }
+    loop();
+    return () => { running = false; };
   }, []);
 
   // Enable sound after first user interaction
@@ -128,15 +237,6 @@ function TargetingDemo() {
     };
   }, [soundEnabled]);
 
-  const enemies = [
-    { id: 1, screenX: '60vw', screenY: '40vh', distance: 900, onScreen: true, inRange: tick % 4 === 0 },
-    { id: 2, screenX: '90vw', screenY: '10vh', distance: 1200, onScreen: false, inRange: tick % 4 === 1 },
-    { id: 3, screenX: '50vw', screenY: '90vh', distance: 450, onScreen: true, inRange: tick % 4 === 2 }
-  ];
-  return (
-    <TargetingSystem
-      hoverTarget={true}
-      enemies={enemies}
       hitMarker={hit}
       soundEnabled={soundEnabled}
     />
