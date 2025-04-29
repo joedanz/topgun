@@ -130,7 +130,7 @@
       "id": 3,
       "title": "Integrate Ammo.js physics engine",
       "description": "Set up the Ammo.js physics engine and create the foundation for flight physics simulation.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         2
       ],
@@ -142,7 +142,7 @@
           "id": 1,
           "title": "Initialize Ammo.js physics world",
           "description": "Set up the Ammo.js physics world with appropriate gravity settings for flight simulation",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Import and initialize Ammo.js library. Create a physics world with appropriate configuration for aircraft simulation (lower gravity than standard Earth gravity). Set up the collision configuration, dispatcher, broadphase (preferably DbvtBroadphase for aircraft simulation), solver, and softBodySolver. Implement a singleton pattern for accessing the physics world throughout the application."
         },
@@ -150,7 +150,7 @@
           "id": 2,
           "title": "Create coordinate transformation utilities",
           "description": "Develop utility functions to convert between Three.js and Ammo.js coordinate systems and objects",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -160,7 +160,7 @@
           "id": 3,
           "title": "Implement rigid body creation system",
           "description": "Create a system for generating and managing physics rigid bodies that correspond to Three.js objects",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2
@@ -171,7 +171,7 @@
           "id": 4,
           "title": "Synchronize physics and render loops",
           "description": "Create a physics update loop that synchronizes with the Three.js render loop",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2,
@@ -183,7 +183,7 @@
           "id": 5,
           "title": "Implement collision detection system",
           "description": "Set up collision detection with appropriate callbacks and filtering for aircraft simulation",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             3,
             4
@@ -194,7 +194,7 @@
           "id": 6,
           "title": "Create force application and debug visualization system",
           "description": "Implement systems for applying aerodynamic forces and visualizing physics objects",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             3,
             4,
@@ -208,7 +208,7 @@
       "id": 4,
       "title": "Develop aircraft model and state system",
       "description": "Create the core aircraft class with state management and integration with the physics engine.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         3
       ],
@@ -220,7 +220,7 @@
           "id": 1,
           "title": "Create basic Aircraft class with core properties",
           "description": "Implement the foundational Aircraft class with essential properties for position, rotation, velocity, and acceleration",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Define the Aircraft class with properties for position (Vector3), rotation (Quaternion), velocity (Vector3), acceleration (Vector3), mass, and aircraft type. Include getters and setters for these properties. Create a constructor that initializes these values and accepts configuration parameters. Implement basic update method that will be called each frame to update the aircraft state."
         },
@@ -228,7 +228,7 @@
           "id": 2,
           "title": "Implement aircraft control methods",
           "description": "Add methods to control the aircraft through thrust, roll, pitch, and yaw inputs",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -238,7 +238,7 @@
           "id": 3,
           "title": "Create aircraft state machine",
           "description": "Develop a state system to manage different aircraft conditions (normal, damaged, destroyed)",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -248,7 +248,7 @@
           "id": 4,
           "title": "Integrate with Ammo.js physics engine",
           "description": "Connect the Aircraft class with the Ammo.js physics engine for realistic simulation",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2
@@ -259,7 +259,7 @@
           "id": 5,
           "title": "Implement aircraft type system with varying performance characteristics",
           "description": "Create a system to support different aircraft types with unique performance profiles",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2,
@@ -271,7 +271,7 @@
           "id": 6,
           "title": "Develop aircraft camera system",
           "description": "Create a camera system that follows the aircraft with appropriate offsets and smoothing",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             4
