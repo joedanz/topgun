@@ -81,27 +81,48 @@ export function createEnemyAIStates(enemy, config = {}) {
       }
     },
     engage: {
-      onEnter() {
+      onEnter(gameContext = {}) {
+        enemy.acquireTarget(gameContext && gameContext.targets ? gameContext.targets : [window.playerAircraft]);
         enemy.stateDebug = 'engage';
+        enemy.lostTargetTimer = 0;
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} entering ENGAGE state`);
+        }
       },
-      onUpdate(dt) {
-        // Track and attack player
-        if (enemy.canSeePlayer) {
-          enemy.steerTowards(enemy.getPlayerPosition(), dt, true);
-          if (enemy.canFireAtPlayer()) {
+      onUpdate(dt, gameContext = {}) {
+        // Re-acquire or lose target logic
+        const targets = gameContext.targets || [window.playerAircraft];
+        if (!enemy.currentTarget || !enemy.canDetectTarget(enemy.currentTarget)) {
+          enemy.lostTargetTimer = (enemy.lostTargetTimer || 0) + dt;
+          if (enemy.lostTargetTimer > 0.5) {
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${enemy.id} lost target, returning to PATROL`);
+            }
+            enemy.stateMachine.transition('patrol');
+            return;
+          }
+          // Optionally, try to acquire a new target
+          enemy.acquireTarget(targets);
+        } else {
+          enemy.lostTargetTimer = 0;
+          // Engage logic: steer toward, fire if in range/angle, etc.
+          enemy.steerTowards(enemy.currentTarget.position, dt, true);
+          if (enemy.canFireAtPlayer && enemy.canFireAtPlayer()) {
             enemy.fireWeaponAtPlayer();
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${enemy.id} firing at target ${enemy.currentTarget.id || '[unknown]'}`);
+            }
+          }
+          // Tactical: evade if under attack or too close
+          if (enemy.isUnderAttack && (enemy.isUnderAttack() || enemy.distanceToPlayer() < (config.evadeDistance || 300))) {
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${enemy.id} switching to EVADE`);
+            }
+            enemy.stateMachine.transition('evade');
           }
         }
-        // Evade if under attack or too close
-        if (enemy.isUnderAttack() || enemy.distanceToPlayer() < (config.evadeDistance || 300)) {
-          enemy.stateMachine.transition('evade');
-        }
-        // Return to patrol if player lost
-        if (!enemy.canSeePlayer) {
-          enemy.stateMachine.transition('patrol');
-        }
       },
-      onExit() {}
+      onExit() { enemy.lostTargetTimer = 0; }
     },
     evade: {
       onEnter() {
