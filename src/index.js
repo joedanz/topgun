@@ -237,11 +237,18 @@ function TargetingDemo() {
     };
   }, [soundEnabled]);
 
+  return (
+    <TargetingSystem
+      enemies={targetingState.enemies}
+      lockedTargetId={targetingState.lockedTargetId}
+      lockStatus={targetingState.lockStatus}
+      lockProgress={targetingState.lockProgress}
       hitMarker={hit}
       soundEnabled={soundEnabled}
     />
   );
 }
+
 
 import { ControlSettingsMenu } from './input/ControlSettingsMenu';
 import ReactDOM from 'react-dom';
