@@ -246,8 +246,10 @@ export default class EnemyAircraft extends Aircraft {
     const angle = Math.acos(forward.dot(dirToIntercept));
     for (let i = 0; i < this.weapons.length; ++i) {
       const w = this.weapons[i];
-      // Range check
+      // Max range check
       if (typeof w.range === 'number' && dist > w.range) continue;
+      // Min range check
+      if (typeof w.minRange === 'number' && dist < w.minRange) continue;
       // Angle check (default 20 deg cone if not specified)
       const maxAngle = (typeof w.firingCone === 'number' ? w.firingCone : (20 * Math.PI / 180));
       if (angle > maxAngle) continue;
@@ -256,6 +258,10 @@ export default class EnemyAircraft extends Aircraft {
       // Cooldown check (assume has isReady or ready property, fallback true)
       if (typeof w.isReady === 'function' && !w.isReady()) continue;
       if (typeof w.ready === 'boolean' && !w.ready) continue;
+      // Missile lock constraint
+      if (w.requiresLock && typeof w.hasLock === 'function' && !w.hasLock(this.currentTarget)) continue;
+      // Arming constraint (time/distance)
+      if (typeof w.isArmed === 'function' && !w.isArmed()) continue;
       // Score: prefer missiles at long range, guns at short
       let score = 0;
       if (w.type === 'missile') {
@@ -314,6 +320,22 @@ export default class EnemyAircraft extends Aircraft {
     const errorDir = aimError > 0 ? this.randomDirectionWithinCone(toIntercept, aimError) : toIntercept;
     const interceptWithError = this.position.clone().add(errorDir.multiplyScalar(newIntercept.clone().sub(this.position).length()));
     this.setLockedTarget(interceptWithError);
+    // Enforce dynamic constraints before firing
+    const weapon = this.weapons[this.currentWeaponIndex];
+    // Missile lock
+    if (weapon && weapon.requiresLock && typeof weapon.hasLock === 'function' && !weapon.hasLock(this.currentTarget)) {
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} cannot fire: missile lock not acquired.`);
+      }
+      return;
+    }
+    // Arming
+    if (weapon && typeof weapon.isArmed === 'function' && !weapon.isArmed()) {
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} cannot fire: weapon not armed.`);
+      }
+      return;
+    }
     this.fireWeapon();
   }
 
