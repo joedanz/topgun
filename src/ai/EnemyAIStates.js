@@ -6,8 +6,14 @@ export function createEnemyAIStates(enemy, config = {}) {
   return {
     patrol: {
       onEnter() {
-        // Optionally pick a new patrol route/waypoint
-        enemy.setPatrolRoute(config.patrolRoute || null);
+        // Assign a patrol route with randomization/perturbation for unpredictability
+        enemy.setPatrolRoute(
+          config.patrolRoute || null,
+          {
+            randomize: !!config.randomizePatrol,
+            perturb: !!config.perturbPatrol
+          }
+        );
         enemy.currentWaypointIndex = 0;
         enemy.stateDebug = 'patrol';
       },
