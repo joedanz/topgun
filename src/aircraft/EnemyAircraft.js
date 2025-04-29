@@ -12,6 +12,10 @@ export default class EnemyAircraft extends Aircraft {
     this.stateDebug = 'patrol';
     this.patrolRoute = config.patrolRoute || [];
     this.currentWaypointIndex = 0;
+    // --- Performance limits (AI fairness) ---
+    this.maxSpeed = (config.maxSpeed !== undefined) ? config.maxSpeed : 1000; // units/sec
+    this.maxAccel = (config.maxAccel !== undefined) ? config.maxAccel : 14000; // units/sec^2
+    this.maxTurnRate = (config.maxTurnRate !== undefined) ? config.maxTurnRate : 90 * Math.PI / 180; // radians/sec
     // AI state machine
     this.stateMachine = new StateMachine(
       createEnemyAIStates(this, config.aiConfig || {}),
@@ -67,17 +71,29 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   steerTowards(target, dt, aggressive = false) {
-    // Simple steering: adjust velocity/rotation toward target (to be improved)
+    // Calculate desired direction
     const toTarget = target.clone().sub(this.position);
     toTarget.y = target.y - this.position.y;
     const desiredDir = toTarget.clone().normalize();
     // Interpolate current forward to desired direction
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation);
-    const lerped = forward.lerp(desiredDir, aggressive ? 0.13 : 0.07).normalize();
+    // Clamp turn rate (yaw/pitch/roll) per frame
+    const maxTurn = this.maxTurnRate * (dt || 0.016);
+    const angle = forward.angleTo(desiredDir);
+    let t = aggressive ? 0.13 : 0.07;
+    if (angle > maxTurn) {
+      t = maxTurn / angle;
+    }
+    const lerped = forward.lerp(desiredDir, t).normalize();
     const targetQuat = new THREE.Quaternion().setFromUnitVectors(forward, lerped);
     this.rotation.multiply(targetQuat);
     // Throttle up if far from target
-    if (toTarget.length() > 200) this.applyThrust(aggressive ? 16000 : 9000);
+    if (toTarget.length() > 200) this.applyThrust(aggressive ? this.maxAccel : this.maxAccel * 0.65);
+    // Clamp speed after thrust
+    if (this.getSpeed && this.getSpeed() > this.maxSpeed) {
+      const v = this.velocity.clone().normalize().multiplyScalar(this.maxSpeed);
+      this.velocity.copy(v);
+    }
   }
 
   canSeePlayer() {
