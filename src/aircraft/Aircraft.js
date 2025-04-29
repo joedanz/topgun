@@ -7,6 +7,8 @@ import * as THREE from 'three';
  * Manages position, rotation, velocity, acceleration, mass, and aircraft type
  * Includes basic update method for simulation
  */
+import Countermeasure from '../weapons/Countermeasure';
+
 export default class Aircraft {
   /**
    * @param {Object} config
@@ -31,6 +33,11 @@ export default class Aircraft {
     this.weapons = [];
     this.currentWeaponIndex = 0;
     if (weapons.length > 0) this.equipWeapons(weapons);
+    // --- Countermeasure System ---
+    this.activeCountermeasures = [];
+    this.countermeasureCooldown = 0;
+    this.countermeasureTypeLast = null;
+
   }
 
   /**
