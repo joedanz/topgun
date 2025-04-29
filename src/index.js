@@ -15,6 +15,7 @@ import './components/MissionObjectives.css';
 import { PauseMenu } from './components/PauseMenu';
 import EnemyDebugLabel from './components/EnemyDebugLabel';
 import EnemyPatrolDebug from './components/EnemyPatrolDebug';
+import EnemyFOVDebug from './components/EnemyFOVDebug';
 import './components/PauseMenu.css';
 
 const appDiv = document.getElementById('app');
@@ -397,10 +398,18 @@ function OverlayRoot() {
       <EnemyPatrolDebug key={enemy.id} enemy={enemy} camera={threeEnv.camera} />
     ));
   }
+  // FOV debug overlays (one canvas per enemy, only if debug)
+  let fovDebugs = null;
+  if (typeof window !== 'undefined' && window.DEBUG_AI_STATE && window.enemies && window.enemies.length) {
+    fovDebugs = window.enemies.map(enemy => (
+      <EnemyFOVDebug key={enemy.id} enemy={enemy} camera={threeEnv.camera} />
+    ));
+  }
   return (
     <>
       {enemyLabels}
       {patrolDebugs}
+      {fovDebugs}
       <HitMarker trigger={hitMarkerTrigger} />
       <HUDOverlayEffects damageTrigger={damageFlash} onShake={handleShake} />
       <TargetingDemo />
