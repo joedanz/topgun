@@ -21,6 +21,30 @@ export function createEnemyAIStates(enemy, config = {}) {
         // Move toward current waypoint
         const wp = enemy.getCurrentWaypoint && enemy.getCurrentWaypoint();
         if (!wp) return;
+
+        // --- Collision Avoidance Stub ---
+        // Terrain avoidance
+        if (enemy.position.y < (config.minAltitude || 60)) {
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} avoiding terrain: skipping waypoint`);
+          }
+          enemy.advanceWaypoint && enemy.advanceWaypoint();
+          return;
+        }
+        // Aircraft avoidance
+        if (typeof window !== 'undefined' && window.enemies) {
+          for (const other of window.enemies) {
+            if (other !== enemy && enemy.position.distanceTo(other.position) < (config.avoidRadius || 120)) {
+              if (window.DEBUG_AI_STATE) {
+                console.log(`[AI] ${enemy.id} avoiding collision: skipping waypoint`);
+              }
+              enemy.advanceWaypoint && enemy.advanceWaypoint();
+              return;
+            }
+          }
+        }
+
+        // --- Normal patrol logic below ---
         const toWP = wp.clone().sub(enemy.position);
         const waypointRadius = config.waypointRadius || 80;
         if (toWP.length() < waypointRadius) {
