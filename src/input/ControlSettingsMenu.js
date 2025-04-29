@@ -91,6 +91,23 @@ export class ControlSettingsMenu {
     rebindLabel.appendChild(rebindBtn);
     this.menu.appendChild(rebindLabel);
 
+    // UI scale control
+    const uiScaleLabel = document.createElement('label');
+    uiScaleLabel.textContent = 'UI Scale:';
+    const uiScaleInput = document.createElement('input');
+    uiScaleInput.type = 'range';
+    uiScaleInput.min = 0.7;
+    uiScaleInput.max = 1.4;
+    uiScaleInput.step = 0.01;
+    uiScaleInput.value = 1.0;
+    uiScaleInput.style.width = '120px';
+    uiScaleInput.oninput = () => {
+      document.documentElement.style.setProperty('--ui-scale', uiScaleInput.value);
+      this._saveSettings();
+    };
+    uiScaleLabel.appendChild(uiScaleInput);
+    this.menu.appendChild(uiScaleLabel);
+
     // Platform-specific settings (tilt, joystick size)
     const tiltSensLabel = document.createElement('label');
     tiltSensLabel.textContent = 'Tilt Sensitivity:';
@@ -132,11 +149,13 @@ export class ControlSettingsMenu {
   }
 
   _saveSettings() {
+    const uiScaleInput = this.menu.querySelector('input[type="range"][min="0.7"]');
     const settings = {
       scheme: this.inputHandler.activeScheme,
       sensitivity: this.mappers.desktop?.sensitivity || 1.0,
       tiltSensitivity: this.mappers.tilt?.options?.sensitivity || 1.0,
       joystickSize: this.mappers.mobile?.options?.joystickSize || 80,
+      uiScale: uiScaleInput ? Number(uiScaleInput.value) : 1.0,
     };
     localStorage.setItem('controlSettings', JSON.stringify(settings));
   }
@@ -147,5 +166,11 @@ export class ControlSettingsMenu {
     if (settings.sensitivity && this.mappers.desktop) this.mappers.desktop.setSensitivity(settings.sensitivity);
     if (settings.tiltSensitivity && this.mappers.tilt) this.mappers.tilt.setSensitivity(settings.tiltSensitivity);
     if (settings.joystickSize && this.mappers.mobile) this.mappers.mobile.options.joystickSize = settings.joystickSize;
+    // Restore UI scale
+    if (typeof settings.uiScale === 'number') {
+      document.documentElement.style.setProperty('--ui-scale', settings.uiScale);
+      const uiScaleInput = this.menu.querySelector('input[type="range"][min="0.7"]');
+      if (uiScaleInput) uiScaleInput.value = settings.uiScale;
+    }
   }
 }

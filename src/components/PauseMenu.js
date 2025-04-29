@@ -43,7 +43,7 @@ export function PauseMenu({ open, onResume, onRestart, onSettings, onQuit }) {
         <div className="pause-title">Game Paused</div>
         <button autoFocus className="pause-btn" onClick={onResume}>Resume</button>
         <button className="pause-btn" onClick={onRestart}>Restart Mission</button>
-        <button className="pause-btn" onClick={onSettings}>Settings</button>
+        <button className="pause-btn" onClick={() => { onSettings && onSettings(); }}>Settings</button>
         <button className="pause-btn" onClick={onQuit}>Quit Game</button>
       </div>
     </div>

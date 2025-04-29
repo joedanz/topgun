@@ -90,8 +90,63 @@ function TargetingDemo() {
   );
 }
 
+import { ControlSettingsMenu } from './input/ControlSettingsMenu';
+import ReactDOM from 'react-dom';
+
 function OverlayRoot() {
   const [pauseOpen, setPauseOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // React wrapper for ControlSettingsMenu
+  function ControlSettingsWrapper({ onClose }) {
+    React.useEffect(() => {
+      let menuInstance = null;
+      try {
+        // Fallback: create dummy handler/mappers if missing
+        if (!window.inputHandler) {
+          window.inputHandler = { activeScheme: 'desktop', setActiveScheme: () => {} };
+        }
+        if (!window.mappers) {
+          window.mappers = { desktop: { setSensitivity: () => {} }, tilt: { setSensitivity: () => {}, options: {} }, mobile: { options: {} } };
+        }
+        menuInstance = new ControlSettingsMenu({ inputHandler: window.inputHandler, mappers: window.mappers });
+      } catch (e) {
+        console.error('Failed to create ControlSettingsMenu:', e);
+        // Show a fallback menu div
+        let fallback = document.createElement('div');
+        fallback.textContent = 'Settings menu failed to load.';
+        fallback.style.position = 'fixed';
+        fallback.style.top = '40px';
+        fallback.style.right = '40px';
+        fallback.style.background = '#222';
+        fallback.style.color = '#fff';
+        fallback.style.padding = '2em';
+        fallback.style.zIndex = 2001;
+        fallback.id = 'fallback-settings-menu';
+        document.body.appendChild(fallback);
+        menuInstance = { menu: fallback };
+      }
+      // Add close on Escape
+      const escListener = (e) => { if (e.key === 'Escape') onClose(); };
+      window.addEventListener('keydown', escListener);
+      // Add close on click outside (on backdrop)
+      const backdrop = document.getElementById('settings-backdrop');
+      if (backdrop) {
+        backdrop.addEventListener('mousedown', onClose);
+      }
+      return () => {
+        window.removeEventListener('keydown', escListener);
+        if (menuInstance && menuInstance.menu && menuInstance.menu.parentNode) {
+          menuInstance.menu.parentNode.removeChild(menuInstance.menu);
+        }
+        if (backdrop) backdrop.removeEventListener('mousedown', onClose);
+      };
+    }, [onClose]);
+    // Render a backdrop for modal feel
+    return (
+      <div id="settings-backdrop" style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:1999,background:'rgba(0,0,0,0.25)'}} />
+    );
+  }
   React.useEffect(() => {
     const handler = e => {
       if (e.key === 'Escape') setPauseOpen(open => !open);
@@ -114,9 +169,14 @@ function OverlayRoot() {
         open={pauseOpen}
         onResume={() => setPauseOpen(false)}
         onRestart={() => { setPauseOpen(false); alert('Restart mission!'); }}
-        onSettings={() => { setPauseOpen(false); alert('Settings!'); }}
+        onSettings={() => { 
+          console.log('Settings button clicked');
+          setPauseOpen(false); 
+          setSettingsOpen(true); 
+        }}
         onQuit={() => { setPauseOpen(false); alert('Quit game!'); }}
       />
+      {settingsOpen && <ControlSettingsWrapper onClose={() => setSettingsOpen(false)} />}
     </>
   );
 }

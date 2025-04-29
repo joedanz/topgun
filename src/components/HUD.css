@@ -1,47 +1,54 @@
 /* src/components/HUD.css */
+/*
+  Responsive HUD design
+  - Uses --ui-scale variable for scaling
+  - Tablet/mobile breakpoints for layout
+  - Touch-friendly spacing for mobile
+  - See device-specific notes at end
+*/
 .hud-container {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 24px 32px;
+  padding: calc(24px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1));
   pointer-events: none;
   z-index: 100;
 }
 .hud-block {
   background: rgba(24,28,36,0.72);
-  border-radius: 12px;
-  margin: 0 10px;
-  padding: 12px 22px;
+  border-radius: calc(12px * var(--ui-scale, 1));
+  margin: 0 calc(10px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1)) calc(22px * var(--ui-scale, 1));
   color: #e0f2ff;
   font-family: 'Orbitron', 'Roboto Mono', monospace;
-  font-size: 1.25em;
+  font-size: calc(1.25em * var(--ui-scale, 1));
   box-shadow: 0 2px 14px rgba(0,0,0,0.18);
-  min-width: 70px;
+  min-width: calc(70px * var(--ui-scale, 1));
   text-align: center;
   transition: background 0.2s;
 }
 .hud-label {
+  font-size: calc(0.8em * var(--ui-scale, 1));
   display: block;
-  font-size: 0.8em;
   color: #8ed0ff;
-  margin-bottom: 2px;
+  margin-bottom: calc(2px * var(--ui-scale, 1));
   letter-spacing: 0.06em;
 }
 .hud-value {
+  font-size: calc(1.35em * var(--ui-scale, 1));
   font-weight: bold;
-  font-size: 1.35em;
 }
 .hud-unit {
-  font-size: 0.65em;
-  margin-left: 2px;
+  font-size: calc(0.65em * var(--ui-scale, 1));
+  margin-left: calc(2px * var(--ui-scale, 1));
   color: #b0e0ff;
 }
 .hud-icon {
-  font-size: 1.4em;
+  font-size: calc(1.4em * var(--ui-scale, 1));
   vertical-align: middle;
-  margin-right: 4px;
+  margin-right: calc(4px * var(--ui-scale, 1));
 }
 .hud-health {
   min-width: 120px;
@@ -63,15 +70,16 @@
   bottom: 0;
   transition: width 0.2s;
 }
-@media (max-width: 600px) {
+@media (max-width: 900px) {
+  /* Tablet: stack HUD blocks, reduce padding */
   .hud-container {
     flex-direction: column;
     align-items: stretch;
-    padding: 10px 8px;
+    padding: 14px 10px;
   }
   .hud-block {
-    margin: 6px 0;
-    padding: 8px 14px;
+    margin: 8px 0;
+    padding: 10px 16px;
     font-size: 1em;
     min-width: 0;
   }
@@ -79,3 +87,33 @@
     min-width: 0;
   }
 }
+
+@media (max-width: 600px) {
+  /* Mobile: further reduce, touch-friendly */
+  .hud-container {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 7px 3px;
+    font-size: 0.92em;
+  }
+  .hud-block {
+    margin: 5px 0;
+    padding: 7px 8px;
+    font-size: 0.95em;
+    min-width: 0;
+    border-radius: 9px;
+  }
+  .hud-health {
+    min-width: 0;
+  }
+  .hud-label, .hud-value, .hud-unit {
+    /* Ensure legibility on small screens */
+    text-shadow: 0 1px 2px #000a;
+  }
+}
+
+/* Device-specific notes:
+- UI scale is set via --ui-scale (see settings menu)
+- Touch targets are at least 40px tall on mobile
+- Text-shadow for legibility on variable backgrounds
+*/
