@@ -273,9 +273,10 @@ export default class EnemyAircraft extends Aircraft {
       if (angle > maxAngle) continue;
       // Ammo check
       if (typeof w.ammoCount === 'number' && w.ammoCount <= 0) continue;
-      // Cooldown check (assume has isReady or ready property, fallback true)
+      // Cooldown check (assume has isReady, ready, or canFire)
       if (typeof w.isReady === 'function' && !w.isReady()) continue;
       if (typeof w.ready === 'boolean' && !w.ready) continue;
+      if (typeof w.canFire === 'function' && !w.canFire()) continue;
       // Missile lock constraint
       if (w.requiresLock && typeof w.hasLock === 'function' && !w.hasLock(this.currentTarget)) continue;
       // Arming constraint (time/distance)
@@ -340,6 +341,13 @@ export default class EnemyAircraft extends Aircraft {
     this.setLockedTarget(interceptWithError);
     // Enforce dynamic constraints before firing
     const weapon = this.weapons[this.currentWeaponIndex];
+    // Cooldown check (canFire or isReady)
+    if (weapon && ((typeof weapon.canFire === 'function' && !weapon.canFire()) || (typeof weapon.isReady === 'function' && !weapon.isReady()) || (typeof weapon.ready === 'boolean' && !weapon.ready))) {
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} cannot fire: weapon on cooldown.`);
+      }
+      return;
+    }
     // Missile lock
     if (weapon && weapon.requiresLock && typeof weapon.hasLock === 'function' && !weapon.hasLock(this.currentTarget)) {
       if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
