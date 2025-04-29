@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Implement basic flight controls for desktop and mobile
-# Status: pending
+# Status: done
 # Dependencies: 4
 # Priority: high
 # Description: Create control systems for both desktop (keyboard/mouse) and mobile (touch/tilt) platforms.
@@ -11,31 +11,31 @@ Implement keyboard controls for desktop (WASD, arrow keys, spacebar). Add mouse 
 Test controls on multiple devices and browsers. Verify that control responsiveness meets expectations. Ensure that control settings are saved correctly between sessions.
 
 # Subtasks:
-## 1. Create input abstraction layer [pending]
+## 1. Create input abstraction layer [done]
 ### Dependencies: None
 ### Description: Develop a platform-agnostic input system that normalizes control inputs across different devices
 ### Details:
 Design and implement an input abstraction layer that maps raw inputs (keyboard, mouse, touch, tilt, gamepad) to standardized game actions (move, aim, fire, etc.). Create interfaces/classes for InputHandler, InputMapper, and InputAction. Implement event-based architecture to handle input events consistently across platforms. Define configuration objects for different control schemes.
 
-## 2. Implement desktop keyboard and mouse controls [pending]
+## 2. Implement desktop keyboard and mouse controls [done]
 ### Dependencies: 5.1
 ### Description: Add support for keyboard (WASD, arrow keys, spacebar) and mouse input on desktop browsers
 ### Details:
 Implement keyboard input detection for movement (WASD, arrow keys) and actions (spacebar, etc.). Add mouse support for aiming and camera control with configurable sensitivity. Create keyboard/mouse-specific input mapper that connects to the abstraction layer. Implement key rebinding functionality. Test responsiveness and ensure smooth control experience on desktop browsers.
 
-## 3. Implement mobile touch controls with virtual joysticks [pending]
+## 3. Implement mobile touch controls with virtual joysticks [done]
 ### Dependencies: 5.1
 ### Description: Create touch-based control system with virtual joysticks for mobile devices
 ### Details:
 Design and implement virtual joystick UI components for movement and camera/aiming. Add touch event handling for joystick interaction and action buttons. Implement multi-touch support for simultaneous movement and aiming. Create touch-specific input mapper that connects to the abstraction layer. Ensure controls are responsive and properly sized for different mobile screen sizes.
 
-## 4. Add device orientation (tilt) controls for mobile [pending]
+## 4. Add device orientation (tilt) controls for mobile [done]
 ### Dependencies: 5.1, 5.3
 ### Description: Implement optional tilt-based controls using device orientation sensors on mobile devices
 ### Details:
 Add device orientation API integration to detect device tilt. Implement calibration system to set neutral position. Create sensitivity and dead zone settings for tilt controls. Build tilt-specific input mapper that connects to the abstraction layer. Add option to toggle between touch and tilt controls. Test on various mobile devices to ensure consistent behavior.
 
-## 5. Create control settings menu and add gamepad support [pending]
+## 5. Create control settings menu and add gamepad support [done]
 ### Dependencies: 5.1, 5.2, 5.3, 5.4
 ### Description: Build a user interface for control configuration and implement gamepad support for desktop
 ### Details:

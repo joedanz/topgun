@@ -284,7 +284,7 @@
       "id": 5,
       "title": "Implement basic flight controls for desktop and mobile",
       "description": "Create control systems for both desktop (keyboard/mouse) and mobile (touch/tilt) platforms.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         4
       ],
@@ -296,7 +296,7 @@
           "id": 1,
           "title": "Create input abstraction layer",
           "description": "Develop a platform-agnostic input system that normalizes control inputs across different devices",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Design and implement an input abstraction layer that maps raw inputs (keyboard, mouse, touch, tilt, gamepad) to standardized game actions (move, aim, fire, etc.). Create interfaces/classes for InputHandler, InputMapper, and InputAction. Implement event-based architecture to handle input events consistently across platforms. Define configuration objects for different control schemes."
         },
@@ -304,7 +304,7 @@
           "id": 2,
           "title": "Implement desktop keyboard and mouse controls",
           "description": "Add support for keyboard (WASD, arrow keys, spacebar) and mouse input on desktop browsers",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -314,7 +314,7 @@
           "id": 3,
           "title": "Implement mobile touch controls with virtual joysticks",
           "description": "Create touch-based control system with virtual joysticks for mobile devices",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -324,7 +324,7 @@
           "id": 4,
           "title": "Add device orientation (tilt) controls for mobile",
           "description": "Implement optional tilt-based controls using device orientation sensors on mobile devices",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             3
@@ -335,7 +335,7 @@
           "id": 5,
           "title": "Create control settings menu and add gamepad support",
           "description": "Build a user interface for control configuration and implement gamepad support for desktop",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2,
