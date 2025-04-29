@@ -30,9 +30,40 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   // --- AI Helper Methods (stubs, to be implemented or connected) ---
-  setPatrolRoute(route) {
-    this.patrolRoute = route || [];
+  setPatrolRoute(route, { randomize = false, perturb = false } = {}) {
+    if (!route) {
+      this.patrolRoute = [];
+      this.currentWaypointIndex = 0;
+      return;
+    }
+    let waypoints = route.map(wp => wp.clone());
+    // Optional: randomize order
+    if (randomize) {
+      for (let i = waypoints.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [waypoints[i], waypoints[j]] = [waypoints[j], waypoints[i]];
+      }
+    }
+    // Optional: perturb waypoints for unpredictability
+    if (perturb) {
+      waypoints = waypoints.map(wp => wp.clone().add(new THREE.Vector3(
+        (Math.random() - 0.5) * 120,
+        (Math.random() - 0.5) * 80,
+        (Math.random() - 0.5) * 120
+      )));
+    }
+    this.patrolRoute = waypoints;
     this.currentWaypointIndex = 0;
+  }
+
+  getCurrentWaypoint() {
+    if (!this.patrolRoute || this.patrolRoute.length === 0) return null;
+    return this.patrolRoute[this.currentWaypointIndex];
+  }
+
+  advanceWaypoint() {
+    if (!this.patrolRoute || this.patrolRoute.length === 0) return;
+    this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.patrolRoute.length;
   }
 
   steerTowards(target, dt, aggressive = false) {
