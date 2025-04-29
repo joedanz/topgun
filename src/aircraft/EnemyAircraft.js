@@ -31,7 +31,9 @@ export default class EnemyAircraft extends Aircraft {
     );
     // For evasion
     this.evasionActive = false;
-  
+    // --- Accuracy variation ---
+    this.aimError = aiCfg.aimError !== undefined ? aiCfg.aimError : 0.05; // radians (default ~2.8 deg)
+  }
 
   update(dt, gameContext = {}) {
     // AI logic
@@ -306,7 +308,12 @@ export default class EnemyAircraft extends Aircraft {
     }
     // Recompute intercept if weapon changed
     const newIntercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
-    this.setLockedTarget(newIntercept);
+    // Inject aim error based on difficulty
+    const aimError = this.aimError !== undefined ? this.aimError : 0.05;
+    const toIntercept = newIntercept.clone().sub(this.position).normalize();
+    const errorDir = aimError > 0 ? this.randomDirectionWithinCone(toIntercept, aimError) : toIntercept;
+    const interceptWithError = this.position.clone().add(errorDir.multiplyScalar(newIntercept.clone().sub(this.position).length()));
+    this.setLockedTarget(interceptWithError);
     this.fireWeapon();
   }
 
