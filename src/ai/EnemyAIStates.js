@@ -62,8 +62,17 @@ export function createEnemyAIStates(enemy, config = {}) {
             }
           }
         }
-        // Transition to engage if player in range/LOS
-        if (enemy.canSeePlayer && enemy.distanceToPlayer() < (config.engageDistance || 1200)) {
+        // --- Detection logic for engagement ---
+        enemy.updateDetection(dt);
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          if (enemy.detectingPlayer) {
+            console.log(`[AI] ${enemy.id} detecting player: timer=${enemy.detectionTimer.toFixed(2)}s`);
+          }
+        }
+        if (enemy.detectingPlayer && enemy.detectionTimer >= enemy.reactionTime) {
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} engaging player!`);
+          }
           enemy.stateMachine.transition('engage');
         }
       },

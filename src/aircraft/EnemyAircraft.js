@@ -16,6 +16,13 @@ export default class EnemyAircraft extends Aircraft {
     this.maxSpeed = (config.maxSpeed !== undefined) ? config.maxSpeed : 1000; // units/sec
     this.maxAccel = (config.maxAccel !== undefined) ? config.maxAccel : 14000; // units/sec^2
     this.maxTurnRate = (config.maxTurnRate !== undefined) ? config.maxTurnRate : 90 * Math.PI / 180; // radians/sec
+    // --- Detection parameters ---
+    const aiCfg = config.aiConfig || {};
+    this.detectionRange = aiCfg.detectionRange !== undefined ? aiCfg.detectionRange : 1400;
+    this.fieldOfView = aiCfg.fieldOfView !== undefined ? aiCfg.fieldOfView : 80 * Math.PI / 180; // radians
+    this.reactionTime = aiCfg.reactionTime !== undefined ? aiCfg.reactionTime : 0.6; // seconds
+    this.detectionTimer = 0;
+    this.detectingPlayer = false;
     // AI state machine
     this.stateMachine = new StateMachine(
       createEnemyAIStates(this, config.aiConfig || {}),
@@ -24,7 +31,7 @@ export default class EnemyAircraft extends Aircraft {
     );
     // For evasion
     this.evasionActive = false;
-  }
+  
 
   update(dt, gameContext = {}) {
     // AI logic
@@ -99,6 +106,37 @@ export default class EnemyAircraft extends Aircraft {
   canSeePlayer() {
     // Placeholder: always true if player exists
     return typeof window !== 'undefined' && window.playerAircraft;
+  }
+
+  canDetectPlayer() {
+    // Returns true if player is within FOV and range
+    if (typeof window === 'undefined' || !window.playerAircraft) return false;
+    const playerPos = window.playerAircraft.position;
+    const toPlayer = playerPos.clone().sub(this.position);
+    const dist = toPlayer.length();
+    if (dist > this.detectionRange) return false;
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
+    const dirToPlayer = toPlayer.clone().normalize();
+    const angle = Math.acos(forward.dot(dirToPlayer));
+    return angle < this.fieldOfView / 2;
+  }
+
+  updateDetection(dt) {
+    if (this.canDetectPlayer()) {
+      if (!this.detectingPlayer) {
+        this.detectionTimer = 0;
+        this.detectingPlayer = true;
+      } else {
+        this.detectionTimer += dt;
+      }
+    } else {
+      this.resetDetection();
+    }
+  }
+
+  resetDetection() {
+    this.detectionTimer = 0;
+    this.detectingPlayer = false;
   }
 
   distanceToPlayer() {
