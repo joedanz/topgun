@@ -3,6 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HUD } from './components/HUD';
 import './components/HUD.css';
+import HUDOverlayEffects from './components/HUDOverlayEffects';
+import './components/ScreenFlash.css';
+import HitMarker from './components/HitMarker';
+import './components/HitMarker.css';
 import { TargetingSystem } from './components/TargetingSystem';
 import './components/TargetingSystem.css';
 import { MissionObjectives, NotificationSystem } from './components/MissionObjectives';
@@ -26,9 +30,32 @@ hudDiv.style.zIndex = 100;
 document.body.appendChild(hudDiv);
 
 const root = createRoot(hudDiv);
-root.render(
-  <HUD speed={420} altitude={12000} ammo={36} health={87} /> // TODO: wire real data
-);
+// Helper to get current weapon info for HUD
+function getHUDWeaponProps() {
+  if (window.playerAircraft) {
+    return {
+      currentWeapon: window.playerAircraft.getCurrentWeapon(),
+      weapons: window.playerAircraft.weapons || [],
+    };
+  }
+  return { currentWeapon: null, weapons: [] };
+}
+
+function renderHUD() {
+  const { currentWeapon, weapons } = getHUDWeaponProps();
+  root.render(
+    <HUD
+      speed={window.playerAircraft?.speed || 420}
+      altitude={window.playerAircraft?.position?.y || 12000}
+      currentWeapon={currentWeapon}
+      weapons={weapons}
+      health={window.playerAircraft?.health ?? 87}
+    />
+  );
+}
+
+renderHUD();
+// Optionally, call renderHUD() in your game loop or after weapon changes to update HUD
 
 // Mount TargetingSystem overlay (above HUD)
 const targetingDiv = document.createElement('div');
@@ -96,6 +123,31 @@ import ReactDOM from 'react-dom';
 function OverlayRoot() {
   const [pauseOpen, setPauseOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [damageFlash, setDamageFlash] = useState(false);
+  const [hitMarkerTrigger, setHitMarkerTrigger] = useState(false);
+
+  // Listen for player damage event (set window.triggerPlayerDamageFlash externally)
+  useEffect(() => {
+    window.triggerPlayerDamageFlash = () => {
+      setDamageFlash(true);
+      setTimeout(() => setDamageFlash(false), 220);
+    };
+    window.triggerPlayerHitMarker = () => {
+      setHitMarkerTrigger(true);
+      setTimeout(() => setHitMarkerTrigger(false), 130);
+    };
+    return () => {
+      window.triggerPlayerDamageFlash = undefined;
+      window.triggerPlayerHitMarker = undefined;
+    };
+  }, []);
+
+  // Camera shake callback
+  const handleShake = () => {
+    if (window.cameraController && typeof window.cameraController.addShake === 'function') {
+      window.cameraController.addShake(1.2); // Intensity
+    }
+  };
 
   // React wrapper for ControlSettingsMenu
   function ControlSettingsWrapper({ onClose }) {
@@ -156,6 +208,8 @@ function OverlayRoot() {
   }, []);
   return (
     <>
+      <HitMarker trigger={hitMarkerTrigger} />
+      <HUDOverlayEffects damageTrigger={damageFlash} onShake={handleShake} />
       <TargetingDemo />
       <MissionObjectives
         objectives={[

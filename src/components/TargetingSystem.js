@@ -13,7 +13,7 @@ export function TargetingSystem({ enemies = [], hoverTarget = false, hitMarker =
   const prevInRangeIds = useRef(new Set());
   useEffect(() => {
     if (!soundEnabled) return;
-    const audio = new Audio('/lockon.mp3'); // Place a lockon.mp3 sound in public/
+    const audio = new Audio('/sounds/lockon.mp3');
     enemies.forEach(e => {
       if (e.inRange && !prevInRangeIds.current.has(e.id)) {
         audio.currentTime = 0;

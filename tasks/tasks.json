@@ -350,7 +350,7 @@
       "id": 6,
       "title": "Create basic HUD and game UI",
       "description": "Develop the heads-up display showing critical flight information and basic game UI elements.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         5
       ],
@@ -362,7 +362,7 @@
           "id": 1,
           "title": "Design and implement core HUD elements",
           "description": "Create the primary flight information display components showing speed, altitude, ammo count, and health status",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Implement a container component for the HUD that positions elements appropriately. Create individual components for speed (numerical display with units), altitude (bar or numerical display), ammunition counter (numerical with icon), and health indicator (bar with color gradient). Use CSS Grid or Flexbox for layout. Ensure elements are positioned non-intrusively (typically bottom or corners of screen). Add basic animations for value changes. Test initial implementation with mock data."
         },
@@ -370,7 +370,7 @@
           "id": 2,
           "title": "Develop targeting system with reticle and enemy indicators",
           "description": "Create a targeting reticle in the center of the screen and directional indicators for enemies",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -380,7 +380,7 @@
           "id": 3,
           "title": "Implement mission objective display and notification system",
           "description": "Create UI components for displaying current mission objectives and in-game notifications",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -390,7 +390,7 @@
           "id": 4,
           "title": "Create pause menu with game options",
           "description": "Implement a full-screen pause menu with resume, restart, and quit options",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -400,7 +400,7 @@
           "id": 5,
           "title": "Implement responsive design and cross-device testing",
           "description": "Ensure all UI elements scale appropriately across different screen sizes and test on multiple devices",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2,

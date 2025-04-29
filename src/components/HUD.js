@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import './HUD.css';
 
-export function HUD({ speed = 0, altitude = 0, ammo = 0, health = 100 }) {
+export function HUD({ speed = 0, altitude = 0, currentWeapon = null, weapons = [], health = 100 }) {
   return (
     <div className="hud-container">
       <SpeedDisplay speed={speed} />
       <AltitudeDisplay altitude={altitude} />
-      <AmmoDisplay ammo={ammo} />
+      <WeaponDisplay currentWeapon={currentWeapon} weapons={weapons} />
       <HealthBar health={health} />
     </div>
   );
@@ -38,11 +38,32 @@ function AltitudeDisplay({ altitude }) {
   );
 }
 
-function AmmoDisplay({ ammo }) {
+function WeaponDisplay({ currentWeapon, weapons }) {
+  if (!currentWeapon) return null;
+  // Icon and color based on weapon type
+  const icons = {
+    'Machine Gun': '🔫',
+    'Cannon': '💥',
+    'Missile': '🚀',
+    'Rocket Pod': '🎇',
+  };
+  const icon = icons[currentWeapon.name] || '🔫';
   return (
-    <div className="hud-ammo hud-block">
-      <span role="img" aria-label="ammo" className="hud-icon">🔫</span>
-      <span className="hud-value">{ammo}</span>
+    <div className="hud-weapon hud-block">
+      <span className="hud-label">WEAPON</span>
+      <span role="img" aria-label={currentWeapon.name} className="hud-icon">{icon}</span>
+      <span className="hud-weapon-name">{currentWeapon.name}</span>
+      <span className="hud-value">{currentWeapon.ammoCount}</span>
+      {/* Optionally show all weapons */}
+      {weapons.length > 1 && (
+        <span className="hud-weapon-list">
+          {weapons.map((w, i) => (
+            <span key={i} className={w === currentWeapon ? 'selected' : ''}>
+              {icons[w.name] || '🔫'}
+            </span>
+          ))}
+        </span>
+      )}
     </div>
   );
 }
