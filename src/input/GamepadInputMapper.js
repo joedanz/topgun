@@ -13,7 +13,15 @@ export class GamepadInputMapper extends InputMapper {
       1: 'secondary', // B
       2: 'special', // X
       3: 'menu', // Y
+      // Weapon switching
+      4: 'prevWeapon', // LB
+      5: 'nextWeapon', // RB
+      12: 'selectWeapon1', // D-pad Up
+      13: 'selectWeapon2', // D-pad Down
+      14: 'selectWeapon3', // D-pad Left
+      15: 'selectWeapon4', // D-pad Right
     };
+
     this.axisMap = {
       0: 'moveX', // left stick X
       1: 'moveY', // left stick Y

@@ -57,6 +57,36 @@ export class MobileTouchInputMapper extends InputMapper {
     this.rightJoystick.container.addEventListener('touchmove', e => this._onJoystickMove(e, this.rightJoystick, 'aim'), { passive: false });
     this.rightJoystick.container.addEventListener('touchend', e => this._onJoystickEnd(e, this.rightJoystick, 'aim'), { passive: false });
     // Fire button
+    // --- Weapon Switching Buttons ---
+    this.prevWeaponButton = document.createElement('button');
+    this.prevWeaponButton.textContent = '<';
+    this.prevWeaponButton.style.position = 'fixed';
+    this.prevWeaponButton.style.right = '140px';
+    this.prevWeaponButton.style.bottom = (40 + this.options.joystickSize) + 'px';
+    this.prevWeaponButton.style.zIndex = 1001;
+    this.prevWeaponButton.style.fontSize = '1.1em';
+    this.prevWeaponButton.style.opacity = '0.65';
+    this.prevWeaponButton.style.padding = '10px 18px';
+    this.prevWeaponButton.style.borderRadius = '14px';
+    document.body.appendChild(this.prevWeaponButton);
+    this.prevWeaponButton.addEventListener('touchstart', e => { e.preventDefault(); this.mapInput('prevWeapon', 'prevWeapon', true); });
+    this.prevWeaponButton.addEventListener('touchend', e => { e.preventDefault(); this.mapInput('prevWeapon', 'prevWeapon', false); });
+
+    this.nextWeaponButton = document.createElement('button');
+    this.nextWeaponButton.textContent = '>';
+    this.nextWeaponButton.style.position = 'fixed';
+    this.nextWeaponButton.style.right = '80px';
+    this.nextWeaponButton.style.bottom = (40 + this.options.joystickSize) + 'px';
+    this.nextWeaponButton.style.zIndex = 1001;
+    this.nextWeaponButton.style.fontSize = '1.1em';
+    this.nextWeaponButton.style.opacity = '0.65';
+    this.nextWeaponButton.style.padding = '10px 18px';
+    this.nextWeaponButton.style.borderRadius = '14px';
+    document.body.appendChild(this.nextWeaponButton);
+    this.nextWeaponButton.addEventListener('touchstart', e => { e.preventDefault(); this.mapInput('nextWeapon', 'nextWeapon', true); });
+    this.nextWeaponButton.addEventListener('touchend', e => { e.preventDefault(); this.mapInput('nextWeapon', 'nextWeapon', false); });
+
+    // --- Fire Button ---
     this.fireButton = document.createElement('button');
     this.fireButton.textContent = 'FIRE';
     this.fireButton.style.position = 'fixed';
