@@ -33,6 +33,10 @@ export default class EnemyAircraft extends Aircraft {
     this.evasionActive = false;
     // --- Accuracy variation ---
     this.aimError = aiCfg.aimError !== undefined ? aiCfg.aimError : 0.05; // radians (default ~2.8 deg)
+    // --- Predictive aiming parameters ---
+    this.predictionAccuracy = aiCfg.predictionAccuracy !== undefined ? aiCfg.predictionAccuracy : 1.0; // 1.0 = perfect, 0 = max error
+    this.aimSmoothing = aiCfg.aimSmoothing !== undefined ? aiCfg.aimSmoothing : 0.3; // 0 = no smoothing, 1 = very slow
+    this._lastAimPoint = null;
   }
 
   update(dt, gameContext = {}) {
@@ -79,11 +83,12 @@ export default class EnemyAircraft extends Aircraft {
     this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.patrolRoute.length;
   }
 
-  steerTowards(target, dt, aggressive = false) {
-    // If target is an object with position and velocity (e.g., player), try to lead
+  steerTowards(target, dt, aggressive = false, pursuitMode = 'lead') {
+    // Predictive aiming with smoothing and accuracy scaling
     let aimPoint = null;
+    let predictionAccuracy = (typeof this.predictionAccuracy === 'number') ? this.predictionAccuracy : 1.0;
+    let smoothing = (typeof this.aimSmoothing === 'number') ? this.aimSmoothing : 0.3;
     if (target && target.position && target.velocity && this.getCurrentWeapon) {
-      // Use projectile speed from current weapon if available
       let projectileSpeed = 600;
       const weapon = this.getCurrentWeapon ? this.getCurrentWeapon() : null;
       if (weapon && weapon.projectileType && weapon.projectileType.speed) {
@@ -91,13 +96,25 @@ export default class EnemyAircraft extends Aircraft {
       } else if (weapon && weapon.speed) {
         projectileSpeed = weapon.speed;
       }
-      aimPoint = this.computeInterceptPoint(target.position, target.velocity, projectileSpeed);
+      // Optional: use target.acceleration if available
+      const options = {
+        pursuitMode,
+        targetAccel: target.acceleration ? target.acceleration.clone() : null,
+        predictionAccuracy
+      };
+      aimPoint = this.computeInterceptPoint(target.position, target.velocity, projectileSpeed, options);
     } else if (target && target.position) {
       aimPoint = target.position.clone();
     } else if (target instanceof THREE.Vector3) {
       aimPoint = target.clone();
     }
     if (!aimPoint) return;
+    // Smoothing/interpolation to prevent jittery aiming
+    if (!this._lastAimPoint) {
+      this._lastAimPoint = this.position.clone().add(new THREE.Vector3(0, 0, -100));
+    }
+    this._lastAimPoint.lerp(aimPoint, smoothing);
+    aimPoint = this._lastAimPoint.clone();
     // Calculate desired direction
     const toTarget = aimPoint.clone().sub(this.position);
     toTarget.y = aimPoint.y - this.position.y;
@@ -281,42 +298,85 @@ export default class EnemyAircraft extends Aircraft {
 
   /**
    * Predicts the intercept point for a moving target, given projectile speed.
+   * Supports lead or lag pursuit, and can optionally use target acceleration.
    * @param {THREE.Vector3} targetPos - Current position of the target.
    * @param {THREE.Vector3} targetVel - Current velocity of the target.
    * @param {number} projectileSpeed - Speed of the projectile (m/s)
+   * @param {Object} [options] - { pursuitMode: 'lead'|'lag', targetAccel?: THREE.Vector3, predictionAccuracy?: number }
    * @returns {THREE.Vector3} The predicted intercept position.
    */
-  computeInterceptPoint(targetPos, targetVel, projectileSpeed) {
+  computeInterceptPoint(targetPos, targetVel, projectileSpeed, options = {}) {
+    const { pursuitMode = 'lead', targetAccel = null, predictionAccuracy = 1.0 } = options;
     // Relative position and velocity
     const shooterPos = this.position.clone();
     const shooterVel = this.velocity ? this.velocity.clone() : new THREE.Vector3();
     const relPos = targetPos.clone().sub(shooterPos);
-    const relVel = targetVel.clone().sub(shooterVel);
-    const relSpeedSq = relVel.lengthSq();
-    const projSpeedSq = projectileSpeed * projectileSpeed;
-
-    // Quadratic: a*t^2 + b*t + c = 0
-    const a = relSpeedSq - projSpeedSq;
-    const b = 2 * relPos.dot(relVel);
-    const c = relPos.lengthSq();
-    // Solve for t (time to intercept)
-    const discriminant = b * b - 4 * a * c;
+    let relVel = targetVel.clone().sub(shooterVel);
+    // Optionally use acceleration for prediction
     let t;
-    if (a === 0) {
-      // Linear case
-      t = -c / b;
-    } else if (discriminant >= 0) {
-      const sqrtDisc = Math.sqrt(discriminant);
-      const t1 = (-b + sqrtDisc) / (2 * a);
-      const t2 = (-b - sqrtDisc) / (2 * a);
-      t = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+    if (targetAccel) {
+      // Use a simple iterative approach for acceleration (not exact)
+      // Estimate time to intercept using velocity only, then refine
+      const projSpeedSq = projectileSpeed * projectileSpeed;
+      const relSpeedSq = relVel.lengthSq();
+      const a = relSpeedSq - projSpeedSq;
+      const b = 2 * relPos.dot(relVel);
+      const c = relPos.lengthSq();
+      const discriminant = b * b - 4 * a * c;
+      if (a === 0) {
+        t = -c / b;
+      } else if (discriminant >= 0) {
+        const sqrtDisc = Math.sqrt(discriminant);
+        const t1 = (-b + sqrtDisc) / (2 * a);
+        const t2 = (-b - sqrtDisc) / (2 * a);
+        t = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+      } else {
+        t = 0;
+      }
+      t = Math.max(0, t || 0);
+      // Refine using acceleration
+      const accelTerm = targetAccel.clone().multiplyScalar(0.5 * t * t);
+      relVel = relVel.clone().add(targetAccel.clone().multiplyScalar(t));
+      return targetPos.clone().add(targetVel.clone().multiplyScalar(t)).add(accelTerm);
     } else {
-      // No real solution, fallback to aiming at current position
-      t = 0;
+      // Standard lead/lag prediction
+      const projSpeedSq = projectileSpeed * projectileSpeed;
+      const relSpeedSq = relVel.lengthSq();
+      const a = relSpeedSq - projSpeedSq;
+      const b = 2 * relPos.dot(relVel);
+      const c = relPos.lengthSq();
+      const discriminant = b * b - 4 * a * c;
+      if (a === 0) {
+        t = -c / b;
+      } else if (discriminant >= 0) {
+        const sqrtDisc = Math.sqrt(discriminant);
+        const t1 = (-b + sqrtDisc) / (2 * a);
+        const t2 = (-b - sqrtDisc) / (2 * a);
+        t = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+      } else {
+        t = 0;
+      }
+      t = Math.max(0, t || 0);
+      let intercept;
+      if (pursuitMode === 'lead') {
+        intercept = targetPos.clone().add(relVel.clone().multiplyScalar(t));
+      } else if (pursuitMode === 'lag') {
+        // Lag pursuit: aim behind the target
+        intercept = targetPos.clone().add(relVel.clone().multiplyScalar(Math.max(0, t - 0.5)));
+      } else {
+        intercept = targetPos.clone();
+      }
+      // Add accuracy/noise scaling
+      if (predictionAccuracy < 1.0) {
+        const noise = new THREE.Vector3(
+          (Math.random() - 0.5) * (1 - predictionAccuracy) * 60,
+          (Math.random() - 0.5) * (1 - predictionAccuracy) * 60,
+          (Math.random() - 0.5) * (1 - predictionAccuracy) * 60
+        );
+        intercept.add(noise);
+      }
+      return intercept;
     }
-    t = Math.max(0, t || 0);
-    // Predicted position
-    return targetPos.clone().add(relVel.clone().multiplyScalar(t));
   }
 
   /**
