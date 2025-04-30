@@ -5,6 +5,7 @@ import { difficultyConfig } from './difficultyConfig.js';
 class DifficultyManager {
   constructor() {
     this.current = 'medium';
+    this._overrides = {};
   }
 
   setDifficulty(level) {
@@ -16,11 +17,27 @@ class DifficultyManager {
   }
 
   getParam(param) {
+    if (this._overrides[this.current] && this._overrides[this.current][param] !== undefined) {
+      return this._overrides[this.current][param];
+    }
     return difficultyConfig[this.current][param];
   }
 
   getAllParams() {
-    return difficultyConfig[this.current];
+    return { ...difficultyConfig[this.current], ...(this._overrides[this.current] || {}) };
+  }
+
+  setParam(param, value) {
+    if (!this._overrides[this.current]) this._overrides[this.current] = {};
+    // Clamp numeric values to [0, 1] unless param is 'reactionTime' (allow 0.1-2.0)
+    if (typeof value === 'number') {
+      if (param === 'reactionTime') {
+        value = Math.max(0.1, Math.min(2.0, value));
+      } else {
+        value = Math.max(0.0, Math.min(1.0, value));
+      }
+    }
+    this._overrides[this.current][param] = value;
   }
 }
 
