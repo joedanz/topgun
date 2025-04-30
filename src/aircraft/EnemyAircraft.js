@@ -380,12 +380,13 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   /**
-   * Selects the optimal weapon for the current target based on range, angle, ammo, and cooldown.
-   * Sets this.currentWeaponIndex to the selected weapon, or leaves unchanged if none valid.
+   * Enhanced: Selects the optimal weapon for the current target based on range, angle, ammo, cooldown, context, and fallback.
+   * Sets this.currentWeaponIndex to the selected weapon, or falls back to any available weapon if none ideal.
    * @param {THREE.Vector3} intercept - Predicted intercept position for aiming.
+   * @param {string} [engagementContext] - 'close', 'long', or 'any'. Optional, can be derived from tactical situation.
    * @returns {boolean} True if a weapon was selected, false otherwise.
    */
-  selectWeaponForTarget(intercept) {
+  selectWeaponForTarget(intercept, engagementContext = 'any') {
     if (!this.weapons || this.weapons.length === 0) return false;
     let bestIdx = -1;
     let bestScore = -Infinity;
@@ -394,26 +395,33 @@ export default class EnemyAircraft extends Aircraft {
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
     const dirToIntercept = toIntercept.clone().normalize();
     const angle = Math.acos(forward.dot(dirToIntercept));
+
+    // First pass: strict constraint and context matching
     for (let i = 0; i < this.weapons.length; ++i) {
       const w = this.weapons[i];
-      // Max range check
+      // --- Constraint checks ---
+      // Range
       if (typeof w.range === 'number' && dist > w.range) continue;
-      // Min range check
       if (typeof w.minRange === 'number' && dist < w.minRange) continue;
-      // Angle check (default 20 deg cone if not specified)
+      // Angle (lock/firing cone)
       const maxAngle = (typeof w.firingCone === 'number' ? w.firingCone : (20 * Math.PI / 180));
       if (angle > maxAngle) continue;
-      // Ammo check
+      // Ammo
       if (typeof w.ammoCount === 'number' && w.ammoCount <= 0) continue;
-      // Cooldown check (assume has isReady, ready, or canFire)
+      // Cooldown/ready
       if (typeof w.isReady === 'function' && !w.isReady()) continue;
       if (typeof w.ready === 'boolean' && !w.ready) continue;
       if (typeof w.canFire === 'function' && !w.canFire()) continue;
-      // Missile lock constraint
+      // Missile lock
       if (w.requiresLock && typeof w.hasLock === 'function' && !w.hasLock(this.currentTarget)) continue;
-      // Arming constraint (time/distance)
+      // Arming constraint
       if (typeof w.isArmed === 'function' && !w.isArmed()) continue;
-      // Score: prefer missiles at long range, guns at short
+      // --- Engagement context preference ---
+      let contextMatch = false;
+      if (w.engagementContext === engagementContext || w.engagementContext === 'any' || engagementContext === 'any') {
+        contextMatch = true;
+      }
+      // --- Scoring ---
       let score = 0;
       if (w.type === 'missile') {
         score += 20;
@@ -422,6 +430,8 @@ export default class EnemyAircraft extends Aircraft {
         score += 10;
         if (dist < 400) score += 5;
       }
+      // Prefer context match
+      if (contextMatch) score += 8;
       // Prefer higher ammo
       if (typeof w.ammoCount === 'number') score += w.ammoCount;
       // Prefer ready weapons
@@ -432,11 +442,31 @@ export default class EnemyAircraft extends Aircraft {
         bestIdx = i;
       }
     }
+    // Fallback: select any available weapon with ammo and ready status, ignoring context
+    if (bestIdx < 0) {
+      for (let i = 0; i < this.weapons.length; ++i) {
+        const w = this.weapons[i];
+        if ((typeof w.ammoCount === 'number' && w.ammoCount <= 0)) continue;
+        if (typeof w.isReady === 'function' && !w.isReady()) continue;
+        if (typeof w.ready === 'boolean' && !w.ready) continue;
+        if (typeof w.canFire === 'function' && !w.canFire()) continue;
+        // Prefer higher ammo and ready
+        let score = 0;
+        if (typeof w.ammoCount === 'number') score += w.ammoCount;
+        if (typeof w.isReady === 'function' && w.isReady()) score += 2;
+        if (typeof w.ready === 'boolean' && w.ready) score += 2;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = i;
+        }
+      }
+    }
     if (bestIdx >= 0) {
       this.currentWeaponIndex = bestIdx;
       this.equippedWeapon = this.weapons[bestIdx];
       return true;
     }
+    // No weapon available
     return false;
   }
 
