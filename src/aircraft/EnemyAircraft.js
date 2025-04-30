@@ -3,9 +3,14 @@
 import Aircraft from './Aircraft';
 import { StateMachine } from '../ai/StateMachine';
 import { createEnemyAIStates } from '../ai/EnemyAIStates';
+import FormationManager from '../ai/FormationManager';
 import * as THREE from 'three';
 
 export default class EnemyAircraft extends Aircraft {
+  /**
+   * @param {object} config
+   * @param {FormationManager} [config.formationManager] - Optional, for formation support
+   */
   constructor(config = {}) {
     super(config);
     this.isEnemy = true;
@@ -33,11 +38,63 @@ export default class EnemyAircraft extends Aircraft {
     this.evasionActive = false;
     // --- Accuracy variation ---
     this.aimError = aiCfg.aimError !== undefined ? aiCfg.aimError : 0.05; // radians (default ~2.8 deg)
+
+    // --- Formation integration ---
+    /**
+     * Reference to the formation manager (shared across AI)
+     * Should be set by game logic or AI spawner
+     * @type {FormationManager|null}
+     */
+    this.formationManager = config.formationManager || null;
+    /**
+     * ID of the formation this aircraft is assigned to (null if not assigned)
+     */
+    this.formationId = null;
+    /**
+     * Cached role info (e.g., 'leader', 'wingman')
+     */
+    this.formationRole = null;
+  }
+
+  /**
+   * Assign this aircraft to a formation.
+   * @param {FormationManager} manager
+   * @param {number} formationId
+   */
+  assignToFormation(manager, formationId) {
+    this.formationManager = manager;
+    this.formationId = formationId;
+  }
+
+  /**
+   * Remove this aircraft from its formation.
+   */
+  removeFromFormation() {
+    if (this.formationManager && this.formationId) {
+      this.formationManager.removeAircraft(this);
+    }
+    this.formationId = null;
+    this.formationRole = null;
   }
 
   update(dt, gameContext = {}) {
-    // AI logic
-    this.stateMachine.update(dt, gameContext);
+    // --- Formation logic ---
+    let steeredByFormation = false;
+    if (this.formationManager && this.formationId) {
+      const assignment = this.formationManager.getAssignedPosition(this);
+      if (assignment && assignment.position) {
+        // Steer toward assigned formation position
+        this.steerTowards(assignment.position, dt, false);
+        this.formationRole = assignment.role;
+        steeredByFormation = true;
+      }
+    }
+    // AI logic (may include patrol/engage logic)
+    // Only call state machine update if not being steered by formation,
+    // or allow state machine to override if needed (e.g., evade)
+    if (!steeredByFormation || (this.stateDebug === 'evade')) {
+      this.stateMachine.update(dt, gameContext);
+    }
     // Call base update for physics
     super.update(dt);
   }
