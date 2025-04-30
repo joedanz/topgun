@@ -6,6 +6,67 @@ import { createEnemyAIStates } from '../ai/EnemyAIStates';
 import * as THREE from 'three';
 
 export default class EnemyAircraft extends Aircraft {
+  // --- Terrain-aware helper ---
+  _canPerformNegativePitchManeuver(minSafeAltitude = 60) {
+    // 1. If obstacles/terrain meshes are available, raycast downward
+    let altitude = this.position.y;
+    if (typeof window !== 'undefined' && window.sceneObstacles && Array.isArray(window.sceneObstacles) && window.sceneObstacles.length > 0 && typeof THREE.Raycaster !== 'undefined') {
+      const down = new THREE.Vector3(0, -1, 0);
+      const raycaster = new THREE.Raycaster(this.position, down, 0, 1000);
+      const intersects = raycaster.intersectObjects(window.sceneObstacles, true);
+      if (intersects && intersects.length > 0) {
+        altitude = intersects[0].distance;
+      }
+    }
+    // 2. Fallback: use y position as altitude
+    return altitude > minSafeAltitude;
+  }
+
+  // --- Debug visualization for maneuvers ---
+  _showManeuverLabel(labelText) {
+    if (!window.DEBUG_AI_STATE || typeof window === 'undefined' || !window.scene) return;
+    // Remove existing label if present
+    this._hideManeuverLabel && this._hideManeuverLabel();
+    // Create a DOM element overlay label (simple, robust)
+    const div = document.createElement('div');
+    div.className = 'ai-maneuver-label';
+    div.style.position = 'absolute';
+    div.style.background = 'rgba(30,30,30,0.85)';
+    div.style.color = '#fff';
+    div.style.padding = '2px 8px';
+    div.style.borderRadius = '6px';
+    div.style.fontSize = '13px';
+    div.style.pointerEvents = 'none';
+    div.style.zIndex = 10010;
+    div.innerText = labelText;
+    document.body.appendChild(div);
+    this._maneuverLabelDiv = div;
+    // Attach update function to reposition label each frame
+    const updateLabelPosition = () => {
+      if (!this._maneuverLabelDiv || !window.scene || !window.scene.camera) return;
+      const camera = window.scene.camera;
+      const worldPos = this.position.clone();
+      const vector = worldPos.project(camera);
+      const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-vector.y * 0.5 + 0.5) * window.innerHeight - 32;
+      div.style.left = `${x}px`;
+      div.style.top = `${y}px`;
+      if (this.evasionActive) {
+        this._maneuverLabelRAF = requestAnimationFrame(updateLabelPosition);
+      }
+    };
+    this._maneuverLabelRAF = requestAnimationFrame(updateLabelPosition);
+    // Hide method
+    this._hideManeuverLabel = () => {
+      if (this._maneuverLabelDiv && this._maneuverLabelDiv.parentNode) {
+        this._maneuverLabelDiv.parentNode.removeChild(this._maneuverLabelDiv);
+      }
+      this._maneuverLabelDiv = null;
+      if (this._maneuverLabelRAF) cancelAnimationFrame(this._maneuverLabelRAF);
+      this._maneuverLabelRAF = null;
+    };
+  }
+
   constructor(config = {}) {
     super(config);
     this.isEnemy = true;
@@ -613,71 +674,390 @@ export default class EnemyAircraft extends Aircraft {
     // Optionally trigger a roll or random direction
   }
 
-  updateEvasion(dt) {
-    if (!this.evasionActive) return;
-    // --- Context-aware evasive maneuvers ---
-    let threatType = null;
-    if (this.isUnderAttack && this.isUnderAttack()) {
-      // Try to determine threat type for maneuver selection
-      if (typeof window !== 'undefined' && window.sceneProjectiles) {
-        for (const proj of window.sceneProjectiles) {
-          if (proj && proj.type === 'missile' && proj.target === this && proj.locked) {
-            threatType = 'missile_lock';
-            break;
-          }
-          if (proj && proj.type === 'missile' && proj.position && proj.direction) {
-            const toAI = this.position.clone().sub(proj.position);
-            if (toAI.length() < 400 && toAI.normalize().dot(proj.direction) > 0.85) {
-              threatType = 'missile_near';
-              break;
-            }
-          }
-          if ((proj.type === 'bullet' || proj.type === 'shell') && proj.position && proj.direction) {
-            const toAI = this.position.clone().sub(proj.position);
-            if (toAI.length() < 150 && toAI.normalize().dot(proj.direction) > 0.9) {
-              threatType = 'gunfire';
-              break;
-            }
-          }
-        }
+  // --- Evasive Maneuver Library ---
+
+performFlatScissors(direction = 1) {
+  // Alternating hard yaw/roll, low speed, horizontal plane
+  for (let i = 0; i < 2; i++) {
+    setTimeout(() => {
+      this.applyYaw(direction * 0.5 + (Math.random() - 0.5) * 0.15);
+      this.applyRoll(direction * 0.9 + (Math.random() - 0.5) * 0.18);
+      this.applyPitch((Math.random() - 0.5) * 0.08);
+      this.applyThrust(this.maxAccel * 0.7);
+      if (window.DEBUG_AI_STATE) {
+        this._showManeuverLabel('Flat Scissors');
       }
+    }, i * 180);
+  }
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs FLAT SCISSORS (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Flat Scissors (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performCobraManeuver() {
+  // Sudden pitch-up, then recover
+  if (!this._canPerformNegativePitchManeuver(30)) {
+    if (window.DEBUG_AI_STATE) this._showManeuverLabel('Cobra (Blocked: Low Altitude)');
+    return;
+  }
+  this.applyPitch(1.3 + (Math.random() - 0.5) * 0.2);
+  this.applyThrust(this.maxAccel * 0.5);
+  setTimeout(() => {
+    this.applyPitch(-0.7 + (Math.random() - 0.5) * 0.18);
+    this.applyThrust(this.maxAccel * 0.9);
+  }, 320);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs COBRA MANEUVER`);
+    this._showManeuverLabel('Cobra Maneuver');
+  }
+}
+
+performLagDisplacementRoll(direction = 1) {
+  // Roll and yaw away, then pitch back in
+  this.applyRoll(direction * 1.1 + (Math.random() - 0.5) * 0.2);
+  this.applyYaw(-direction * 0.3 + (Math.random() - 0.5) * 0.1);
+  this.applyPitch(0.16 + (Math.random() - 0.5) * 0.09);
+  this.applyThrust(this.maxAccel * 0.8);
+  setTimeout(() => {
+    this.applyRoll(-direction * 0.7 + (Math.random() - 0.5) * 0.2);
+    this.applyYaw(direction * 0.22 + (Math.random() - 0.5) * 0.08);
+    this.applyPitch(-0.12 + (Math.random() - 0.5) * 0.07);
+    this.applyThrust(this.maxAccel * 0.8);
+  }, 240);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs LAG DISPLACEMENT ROLL (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Lag Displacement Roll (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performDefensiveSpiral(direction = 1) {
+  // Descending spiral, continuous roll, negative pitch, yaw
+  if (!this._canPerformNegativePitchManeuver()) {
+    if (window.DEBUG_AI_STATE) this._showManeuverLabel('Defensive Spiral (Pitch Limited)');
+    return;
+  }
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      this.applyRoll(direction * 1.0 + (Math.random() - 0.5) * 0.2);
+      this.applyYaw(direction * 0.18 + (Math.random() - 0.5) * 0.07);
+      this.applyPitch(-0.23 + (Math.random() - 0.5) * 0.06);
+      this.applyThrust(this.maxAccel * 0.75);
+      if (window.DEBUG_AI_STATE) {
+        this._showManeuverLabel('Defensive Spiral');
+      }
+    }, i * 130);
+  }
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs DEFENSIVE SPIRAL (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Defensive Spiral (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performPitchbackTurn(direction = 1) {
+  // Rapid pitch-up, then roll/yaw to reverse
+  if (!this._canPerformNegativePitchManeuver(40)) {
+    if (window.DEBUG_AI_STATE) this._showManeuverLabel('Pitchback (Pitch Limited)');
+    return;
+  }
+  this.applyPitch(0.95 + (Math.random() - 0.5) * 0.18);
+  this.applyThrust(this.maxAccel * 0.85);
+  setTimeout(() => {
+    this.applyRoll(direction * 0.9 + (Math.random() - 0.5) * 0.13);
+    this.applyYaw(direction * 0.7 + (Math.random() - 0.5) * 0.15);
+    this.applyPitch(-0.45 + (Math.random() - 0.5) * 0.12);
+    this.applyThrust(this.maxAccel * 0.9);
+  }, 220);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs PITCHBACK TURN (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Pitchback Turn (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performLowYoYo(direction = 1) {
+  // Descend and then pull up, reducing closure and repositioning
+  let pitch = -0.28 + (Math.random() - 0.5) * 0.07;
+  if (!this._canPerformNegativePitchManeuver()) {
+    pitch = Math.abs(pitch) * 0.18;
+    if (window.DEBUG_AI_STATE) {
+      this._showManeuverLabel('Low Yo-Yo (Pitch Limited)');
     }
-    // Pick maneuver based on threat
-    if (threatType === 'missile_lock' || threatType === 'missile_near') {
-      // Missile: break turn, split-S, or barrel roll
-      if (Math.random() < 0.5) {
-        this.applyYaw((Math.random() < 0.5 ? 1 : -1) * 0.25); // hard break turn
-        this.applyRoll((Math.random() - 0.5) * 0.5);
-      } else {
-        this.applyPitch(-0.3); // split-S dive
-        this.applyRoll((Math.random() - 0.5) * 0.5);
-      }
-      this.applyThrust(this.maxAccel);
-      // Deploy countermeasures if available and cooldown allows
-      if (this.deployCountermeasure && (!this._lastCM || (performance.now() - this._lastCM) > 1200)) {
-        this.deployCountermeasure('flare');
-        this._lastCM = performance.now();
-        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${this.id} deployed flare!`);
-        }
-      }
-    } else if (threatType === 'gunfire') {
-      // Gunfire: jink (random roll/yaw/pitch)
-      this.applyRoll((Math.random() - 0.5) * 0.3);
-      this.applyYaw((Math.random() - 0.5) * 0.25);
-      this.applyPitch((Math.random() - 0.5) * 0.18);
+  }
+  this.applyPitch(pitch);
+  this.applyRoll(direction * 0.4 + (Math.random() - 0.5) * 0.08);
+  this.applyYaw(direction * 0.22 + (Math.random() - 0.5) * 0.08);
+  this.applyThrust(this.maxAccel * 0.85);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs LOW YO-YO (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Low Yo-Yo (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performHighYoYo(direction = 1) {
+  // Pull up and roll over, then descend back, reducing closure and repositioning
+  this.applyPitch(0.32 + (Math.random() - 0.5) * 0.07);
+  this.applyRoll(direction * 0.7 + (Math.random() - 0.5) * 0.1);
+  this.applyYaw(direction * 0.18 + (Math.random() - 0.5) * 0.07);
+  this.applyThrust(this.maxAccel * 0.82);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs HIGH YO-YO (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`High Yo-Yo (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performRollingScissors(direction = 1) {
+  // Alternating roll and yaw, simulating a rolling scissors
+  for (let i = 0; i < 2; i++) {
+    setTimeout(() => {
+      this.applyRoll(direction * 1.2 + (Math.random() - 0.5) * 0.2);
+      this.applyYaw(direction * 0.22 + (Math.random() - 0.5) * 0.08);
+      this.applyPitch((Math.random() - 0.5) * 0.12);
       this.applyThrust(this.maxAccel * 0.8);
-    } else {
-      // Fallback: random evasive movement
-      const rand = Math.random();
-      if (rand < 0.33) this.applyRoll((Math.random() - 0.5) * 0.15);
-      if (rand < 0.66) this.applyYaw((Math.random() - 0.5) * 0.12);
-      if (rand > 0.66) this.applyPitch((Math.random() - 0.5) * 0.12);
-      this.applyThrust(12000);
+      if (window.DEBUG_AI_STATE) {
+        this._showManeuverLabel('Rolling Scissors');
+      }
+    }, i * 200);
+  }
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs ROLLING SCISSORS (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Rolling Scissors (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performBreakTurn(direction = 1) {
+  this.applyYaw(direction * 0.32 + (Math.random() - 0.5) * 0.08);
+  this.applyRoll(direction * 0.6 + (Math.random() - 0.5) * 0.1);
+  this.applyThrust(this.maxAccel);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs BREAK TURN (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Break Turn (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performSplitS() {
+  // Terrain-aware: check altitude before negative pitch
+  if (!this._canPerformNegativePitchManeuver()) {
+    if (window.DEBUG_AI_STATE) {
+      console.warn(`[AI] ${this.id} Split-S blocked: too close to ground!`);
+      this._showManeuverLabel('Split-S (Blocked: Low Altitude)');
+    }
+    // Fallback: do a break turn instead
+    this.performBreakTurn(Math.random() < 0.5 ? 1 : -1);
+    return;
+  }
+  this.applyPitch(-0.5 + (Math.random() - 0.5) * 0.08);
+  this.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.7 + (Math.random() - 0.5) * 0.1);
+  this.applyThrust(this.maxAccel);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs SPLIT-S`);
+    this._showManeuverLabel('Split-S');
+  }
+}
+
+performBarrelRoll(direction = 1) {
+  this.applyRoll(direction * 1.0 + (Math.random() - 0.5) * 0.2);
+  this.applyPitch(0.18 + (Math.random() - 0.5) * 0.05);
+  this.applyThrust(this.maxAccel * 0.9);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs BARREL ROLL (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Barrel Roll (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performImmelmann(direction = 1) {
+  this.applyPitch(0.55 + (Math.random() - 0.5) * 0.06);
+  this.applyRoll(direction * 0.5 + (Math.random() - 0.5) * 0.1);
+  this.applyThrust(this.maxAccel);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs IMMELMANN (${direction > 0 ? 'right' : 'left'})`);
+    this._showManeuverLabel(`Immelmann (${direction > 0 ? 'Right' : 'Left'})`);
+  }
+}
+
+performVerticalScissors() {
+  this.applyYaw((Math.random() < 0.5 ? 1 : -1) * 0.22 + (Math.random() - 0.5) * 0.05);
+  this.applyPitch(0.25 + (Math.random() - 0.5) * 0.08);
+  this.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.5 + (Math.random() - 0.5) * 0.1);
+  this.applyThrust(this.maxAccel * 0.85);
+  if (window.DEBUG_AI_STATE) {
+    console.log(`[AI] ${this.id} performs VERTICAL SCISSORS`);
+    this._showManeuverLabel('Vertical Scissors');
+  }
+}
+
+performHighGJink() {
+  // Terrain-aware: avoid large negative pitch if too low
+  let pitch = (Math.random() - 0.5) * 0.25;
+  if (pitch < 0 && !this._canPerformNegativePitchManeuver()) {
+    pitch = Math.abs(pitch) * 0.25; // reduce negative pitch
+    if (window.DEBUG_AI_STATE) {
+      console.warn(`[AI] ${this.id} High-G Jink: negative pitch reduced due to low altitude!`);
+      this._showManeuverLabel('High-G Jink (Pitch Limited)');
+    }
+  }
+  this.applyYaw((Math.random() < 0.5 ? 1 : -1) * 0.4 + (Math.random() - 0.5) * 0.1);
+  this.applyPitch(pitch);
+  this.applyRoll((Math.random() - 0.5) * 0.2);
+  this.applyThrust(this.maxAccel);
+  if (window.DEBUG_AI_STATE && pitch >= 0) {
+    console.log(`[AI] ${this.id} performs HIGH-G JINK`);
+    this._showManeuverLabel('High-G Jink');
+  }
+}
+
+performRandomJink() {
+  // Terrain-aware: avoid negative pitch if too low
+  let pitch = (Math.random() - 0.5) * 0.22;
+  if (pitch < 0 && !this._canPerformNegativePitchManeuver()) {
+    pitch = Math.abs(pitch) * 0.18;
+    if (window.DEBUG_AI_STATE) {
+      console.warn(`[AI] ${this.id} Random Jink: negative pitch reduced due to low altitude!`);
+      this._showManeuverLabel('Random Jink (Pitch Limited)');
+    }
+  }
+  this.applyRoll((Math.random() - 0.5) * 0.35);
+  this.applyYaw((Math.random() - 0.5) * 0.32);
+  this.applyPitch(pitch);
+  this.applyThrust(this.maxAccel * 0.8);
+  if (window.DEBUG_AI_STATE && pitch >= 0) {
+    console.log(`[AI] ${this.id} performs RANDOM JINK`);
+    this._showManeuverLabel('Random Jink');
+  }
+}
+
+updateEvasion(dt, evasionConfig = {}) {
+  if (!this.evasionActive) return;
+  // Difficulty scaling
+  const aggression = typeof evasionConfig.aggression === 'number' ? evasionConfig.aggression : 0.6;
+  const cmProbability = typeof evasionConfig.cmProbability === 'number' ? evasionConfig.cmProbability : 0.5;
+  // --- Energy management ---
+  const minEnergy = 0.45; // fraction of maxSpeed, below which AI should conserve energy
+  const currentSpeed = this.getSpeed ? this.getSpeed() : (this.velocity ? this.velocity.length() : 0);
+  const maxSpeed = this.maxSpeed || 1000;
+  const energyLow = currentSpeed < maxSpeed * minEnergy;
+  if (energyLow && this.applyThrust) {
+    // Throttle up or afterburner if available
+    this.applyThrust(this.maxAccel * 1.1);
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      this._showManeuverLabel('Energy Recovery');
+      console.log(`[AI] ${this.id} energy low, throttling up!`);
     }
   }
 
+  let threatType = null;
+  let threatGuidance = null;
+  let threatObj = null;
+  if (this.isUnderAttack && this.isUnderAttack()) {
+    if (typeof window !== 'undefined' && window.sceneProjectiles) {
+      for (const proj of window.sceneProjectiles) {
+        if (proj && proj.type === 'missile' && proj.target === this && proj.locked) {
+          threatType = 'missile_lock';
+          threatGuidance = proj.guidanceType || null;
+          threatObj = proj;
+          break;
+        }
+        if (proj && proj.type === 'missile' && proj.position && proj.direction) {
+          const toAI = this.position.clone().sub(proj.position);
+          if (toAI.length() < 400 && toAI.normalize().dot(proj.direction) > 0.85) {
+            threatType = 'missile_near';
+            threatGuidance = proj.guidanceType || null;
+            threatObj = proj;
+            break;
+          }
+        }
+        if ((proj.type === 'bullet' || proj.type === 'shell') && proj.position && proj.direction) {
+          const toAI = this.position.clone().sub(proj.position);
+          if (toAI.length() < 150 && toAI.normalize().dot(proj.direction) > 0.9) {
+            threatType = 'gunfire';
+            threatObj = proj;
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Select maneuver based on threat
+  if (threatType === 'missile_lock' || threatType === 'missile_near') {
+    // Missile: select from break turn, split-S, barrel roll, Immelmann, vertical scissors, low yo-yo, high yo-yo, rolling scissors
+    const maneuvers = [
+      () => this.performBreakTurn(Math.random() < 0.5 ? 1 : -1),
+      () => this.performSplitS(),
+      () => this.performBarrelRoll(Math.random() < 0.5 ? 1 : -1),
+      () => this.performImmelmann(Math.random() < 0.5 ? 1 : -1),
+      () => this.performVerticalScissors(),
+      () => this.performLowYoYo(Math.random() < 0.5 ? 1 : -1),
+      () => this.performHighYoYo(Math.random() < 0.5 ? 1 : -1),
+      () => this.performRollingScissors(Math.random() < 0.5 ? 1 : -1),
+      () => this.performFlatScissors(Math.random() < 0.5 ? 1 : -1),
+      () => this.performCobraManeuver(),
+      () => this.performLagDisplacementRoll(Math.random() < 0.5 ? 1 : -1),
+      () => this.performDefensiveSpiral(Math.random() < 0.5 ? 1 : -1),
+      () => this.performPitchbackTurn(Math.random() < 0.5 ? 1 : -1)
+    ];
+    // If energy is low, prefer less energy-draining maneuvers
+    if (energyLow) {
+      maneuvers.unshift(() => this.performBreakTurn(Math.random() < 0.5 ? 1 : -1));
+    }
+    maneuvers[Math.floor(Math.random() * maneuvers.length)]();
+    // --- Countermeasure logic ---
+    if (this.deployCountermeasure && (!this._lastCM || (performance.now() - this._lastCM) > 1200)) {
+      // Radar-guided: prefer chaff; IR: prefer flare; fallback: random
+      let cmType = 'flare';
+      if (threatGuidance === 'radar') cmType = 'chaff';
+      else if (threatGuidance === 'ir') cmType = 'flare';
+      else if (Math.random() < 0.5) cmType = 'chaff';
+      // Deploy based on difficulty-scaling probability
+      if (Math.random() < cmProbability) {
+        this.deployCountermeasure(cmType);
+        this._lastCM = performance.now();
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          this._showManeuverLabel(`Deploy ${cmType.charAt(0).toUpperCase() + cmType.slice(1)}`);
+          console.log(`[AI] ${this.id} deployed ${cmType}!`);
+        }
+      }
+    }
+  } else if (threatType === 'gunfire') {
+    // Gunfire: select between high-G jink, random jink, break turn, low yo-yo, rolling scissors
+    const maneuvers = [
+      () => this.performHighGJink(),
+      () => this.performRandomJink(),
+      () => this.performBreakTurn(Math.random() < 0.5 ? 1 : -1),
+      () => this.performLowYoYo(Math.random() < 0.5 ? 1 : -1),
+      () => this.performRollingScissors(Math.random() < 0.5 ? 1 : -1),
+      () => this.performFlatScissors(Math.random() < 0.5 ? 1 : -1),
+      () => this.performLagDisplacementRoll(Math.random() < 0.5 ? 1 : -1),
+      () => this.performDefensiveSpiral(Math.random() < 0.5 ? 1 : -1),
+      () => this.performPitchbackTurn(Math.random() < 0.5 ? 1 : -1)
+    ];
+    // If energy is low, prefer random jink (less energy cost)
+    if (energyLow) maneuvers.unshift(() => this.performRandomJink());
+    const idx = Math.floor(Math.random() * maneuvers.length);
+    maneuvers[idx]();
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      let label = idx === 0 ? 'High-G Jink' : idx === 1 ? 'Random Jink' : 'Break Turn';
+      if (energyLow) label += ' (Energy Save)';
+      this._showManeuverLabel(label);
+    }
+  } else {
+    // Fallback: random jink, energy-aware
+    if (energyLow && Math.random() < 0.7) {
+      this.performRandomJink();
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        this._showManeuverLabel('Random Jink (Energy Save)');
+      }
+    } else {
+      this.performRandomJink();
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        this._showManeuverLabel('Random Jink');
+      }
+    }
+  }
+}
+
+
+
   endEvasionManeuver() {
     this.evasionActive = false;
+    this._hideManeuverLabel && this._hideManeuverLabel();
   }
 }

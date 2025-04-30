@@ -131,20 +131,55 @@ export function createEnemyAIStates(enemy, config = {}) {
     },
     evade: {
       onEnter() {
+        // --- Difficulty scaling for evasion ---
+        // Use config.difficulty if present (easy, medium, hard)
+        const difficulty = config.difficulty || 'medium';
+        // Set evasion parameters based on difficulty
+        let minEvadeTime = 1.7, maneuverAggression = 0.6, cmProbability = 0.5;
+        if (difficulty === 'easy') {
+          minEvadeTime = 2.0; maneuverAggression = 0.45; cmProbability = 0.3;
+        } else if (difficulty === 'hard') {
+          minEvadeTime = 1.1; maneuverAggression = 0.85; cmProbability = 0.75;
+        } else if (difficulty === 'medium') {
+          minEvadeTime = 1.5; maneuverAggression = 0.6; cmProbability = 0.5;
+        }
+        enemy._evadeMinTime = minEvadeTime;
+        enemy._evasionAggression = maneuverAggression;
+        enemy._cmProbability = cmProbability;
         enemy.stateDebug = 'evade';
-        enemy.startEvasionManeuver();
+        enemy.startEvasionManeuver && enemy.startEvasionManeuver();
+        enemy._evadeTimer = 0;
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} entering EVADE state (difficulty: ${difficulty})`);
+        }
       },
       onUpdate(dt) {
-        // Perform evasive maneuver
-        enemy.updateEvasion(dt);
-        // Return to engage if safe
-        if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > (config.evadeDistance || 300)) {
-          enemy.stateMachine.transition('engage');
+        // Pass aggression and CM probability to evasion logic
+        enemy.updateEvasion(dt, {
+          aggression: enemy._evasionAggression,
+          cmProbability: enemy._cmProbability
+        });
+        enemy._evadeTimer = (enemy._evadeTimer || 0) + dt;
+        // Require minimum evasion duration before recovery
+        const minEvadeTime = enemy._evadeMinTime || config.minEvadeTime || 1.5;
+        if (enemy._evadeTimer >= minEvadeTime) {
+          // Return to engage if safe
+          if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > (config.evadeDistance || 300)) {
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${enemy.id} recovery: transitioning from EVADE to ENGAGE`);
+            }
+            enemy.stateMachine.transition('engage');
+          }
         }
       },
       onExit() {
-        enemy.endEvasionManeuver();
+        enemy.endEvasionManeuver && enemy.endEvasionManeuver();
+        enemy._evadeTimer = 0;
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} exiting EVADE state`);
+        }
       }
-    }
+    },
+
   };
 }

@@ -13,6 +13,7 @@ import './components/TargetingSystem.css';
 import { MissionObjectives, NotificationSystem } from './components/MissionObjectives';
 import './components/MissionObjectives.css';
 import { PauseMenu } from './components/PauseMenu';
+import DebugMenu from './components/DebugMenu';
 import EnemyDebugLabel from './components/EnemyDebugLabel';
 import EnemyPatrolDebug from './components/EnemyPatrolDebug';
 import EnemyFOVDebug from './components/EnemyFOVDebug';
@@ -383,6 +384,19 @@ function OverlayRoot() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [damageFlash, setDamageFlash] = useState(false);
   const [hitMarkerTrigger, setHitMarkerTrigger] = useState(false);
+  const [debug, setDebug] = React.useState(window.DEBUG_AI_STATE || false);
+  const [enemies, setEnemies] = React.useState(window.enemies || []);
+  const [camera, setCamera] = React.useState(window.scene ? window.scene.camera : null);
+
+  React.useEffect(() => {
+    // Sync with global
+    function sync() {
+      setEnemies(window.enemies || []);
+      setCamera(window.scene ? window.scene.camera : null);
+    }
+    const id = setInterval(sync, 500);
+    return () => clearInterval(id);
+  }, []);
 
   // Listen for player damage event (set window.triggerPlayerDamageFlash externally)
   useEffect(() => {
