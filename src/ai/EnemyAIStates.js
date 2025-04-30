@@ -2,25 +2,10 @@
 // Defines the state logic for enemy AI (patrol, engage, evade)
 import * as THREE from 'three';
 
-import { difficultyManager } from './DifficultyManager';
-
 export function createEnemyAIStates(enemy, config = {}) {
   return {
     patrol: {
       onEnter() {
-        // --- DIFFICULTY PARAMS ---
-        enemy.reactionTime = difficultyManager.getParam('reactionTime');
-        enemy.aimError = 1 - difficultyManager.getParam('accuracy'); // Lower is better aim
-        enemy.aggressiveness = difficultyManager.getParam('aggressiveness');
-        enemy.tactics = difficultyManager.getParam('tactics');
-        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${enemy.id} DIFFICULTY:`, {
-            reactionTime: enemy.reactionTime,
-            aimError: enemy.aimError,
-            aggressiveness: enemy.aggressiveness,
-            tactics: enemy.tactics
-          });
-        }
         // Assign a patrol route with randomization/perturbation for unpredictability
         enemy.setPatrolRoute(
           config.patrolRoute || null,
@@ -97,19 +82,6 @@ export function createEnemyAIStates(enemy, config = {}) {
     },
     engage: {
       onEnter(gameContext = {}) {
-        // --- DIFFICULTY PARAMS ---
-        enemy.reactionTime = difficultyManager.getParam('reactionTime');
-        enemy.aimError = 1 - difficultyManager.getParam('accuracy');
-        enemy.aggressiveness = difficultyManager.getParam('aggressiveness');
-        enemy.tactics = difficultyManager.getParam('tactics');
-        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${enemy.id} DIFFICULTY:`, {
-            reactionTime: enemy.reactionTime,
-            aimError: enemy.aimError,
-            aggressiveness: enemy.aggressiveness,
-            tactics: enemy.tactics
-          });
-        }
         enemy.acquireTarget(gameContext && gameContext.targets ? gameContext.targets : [window.playerAircraft]);
         enemy.stateDebug = 'engage';
         enemy.lostTargetTimer = 0;
@@ -140,20 +112,10 @@ export function createEnemyAIStates(enemy, config = {}) {
           // Steer toward target (with aggression if needsManeuver)
           enemy.steerTowards(enemy.currentTarget.position, dt, tactical.needsManeuver);
           // Fire if in good attack position
-          if (
-            tactical.canAttack &&
-            enemy.canFireAtTarget &&
-            enemy.currentTarget &&
-            enemy.canFireAtTarget(enemy.currentTarget)
-          ) {
+          if (tactical.canAttack && enemy.canFireAtTarget && enemy.canFireAtTarget()) {
+            enemy.fireWeaponAtTarget();
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} can fire at target ${enemy.currentTarget.id || '[unknown]'}`);
-            }
-            enemy.fireWeaponAtTarget(enemy.currentTarget);
-            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              const weapon = enemy.equippedWeapon;
-              const aimError = enemy.aimError !== undefined ? enemy.aimError : 0.05;
-              console.log(`[AI] ${enemy.id} fired ${weapon ? weapon.name : '[unknown weapon]'} at ${enemy.currentTarget.id || '[unknown]'} with aimError=${aimError}`);
+              console.log(`[AI] ${enemy.id} firing at target ${enemy.currentTarget.id || '[unknown]'}`);
             }
           }
           // Tactical: evade if under attack or at a disadvantage
@@ -169,63 +131,19 @@ export function createEnemyAIStates(enemy, config = {}) {
     },
     evade: {
       onEnter() {
-        // --- DIFFICULTY PARAMS ---
-        enemy.reactionTime = difficultyManager.getParam('reactionTime');
-        enemy.aimError = 1 - difficultyManager.getParam('accuracy');
-        enemy.aggressiveness = difficultyManager.getParam('aggressiveness');
-        enemy.tactics = difficultyManager.getParam('tactics');
-        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${enemy.id} DIFFICULTY:`, {
-            reactionTime: enemy.reactionTime,
-            aimError: enemy.aimError,
-            aggressiveness: enemy.aggressiveness,
-            tactics: enemy.tactics
-          });
-        }
         enemy.stateDebug = 'evade';
         enemy.startEvasionManeuver();
-        enemy._evasionStartTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
       },
       onUpdate(dt) {
         // Perform evasive maneuver
         enemy.updateEvasion(dt);
-        // Recovery/re-engagement logic: Only return to engage if safe and minimum evasion time elapsed
-        // --- TUNABLE: Minimum evasion duration and safe distance scale with difficulty ---
-        // Lower aimError = harder AI = shorter evasion, closer re-engage
-        const aimError = enemy.aimError !== undefined ? enemy.aimError : 0.05;
-        const minDurationBase = (config.evadeMinDurationBase !== undefined) ? config.evadeMinDurationBase : 1.0;
-        const minDurationScale = (config.evadeMinDurationScale !== undefined) ? config.evadeMinDurationScale : 2.5;
-        const minEvasionDuration = minDurationBase + aimError * minDurationScale; // e.g. 1.0s (ace) to 3.5s (rookie)
-        const safeDistBase = (config.evadeSafeDistBase !== undefined) ? config.evadeSafeDistBase : 180;
-        const safeDistScale = (config.evadeSafeDistScale !== undefined) ? config.evadeSafeDistScale : 500;
-        const safeDistance = safeDistBase + aimError * safeDistScale; // e.g. 180m (ace) to 680m (rookie)
-        const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-        const evasionTime = enemy._evasionStartTime ? (now - enemy._evasionStartTime) / 1000 : 0;
-        // Optionally, check for safe distance from all threats (player and projectiles)
-        let safeFromThreats = true;
-        if (typeof window !== 'undefined' && window.sceneProjectiles) {
-          for (const proj of window.sceneProjectiles) {
-            if (proj && proj.target === enemy && proj.type === 'missile' && proj.locked) {
-              safeFromThreats = false;
-              break;
-            }
-          }
-        }
-        if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > safeDistance && evasionTime > minEvasionDuration && safeFromThreats) {
-          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-            console.log(`[AI] ${enemy.id} completed evasion, re-engaging after ${evasionTime.toFixed(2)}s (min: ${minEvasionDuration.toFixed(2)}s, safeDist: ${safeDistance.toFixed(0)}m, aimError: ${aimError})`);
-          }
-          enemy.stateMachine.transition('engage');
-        }
-          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-            console.log(`[AI] ${enemy.id} completed evasion, re-engaging after ${evasionTime.toFixed(2)}s`);
-          }
+        // Return to engage if safe
+        if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > (config.evadeDistance || 300)) {
           enemy.stateMachine.transition('engage');
         }
       },
       onExit() {
         enemy.endEvasionManeuver();
-        delete enemy._evasionStartTime;
       }
     }
   };

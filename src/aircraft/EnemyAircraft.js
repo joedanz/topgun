@@ -3,14 +3,9 @@
 import Aircraft from './Aircraft';
 import { StateMachine } from '../ai/StateMachine';
 import { createEnemyAIStates } from '../ai/EnemyAIStates';
-import FormationManager from '../ai/FormationManager';
 import * as THREE from 'three';
 
 export default class EnemyAircraft extends Aircraft {
-  /**
-   * @param {object} config
-   * @param {FormationManager} [config.formationManager] - Optional, for formation support
-   */
   constructor(config = {}) {
     super(config);
     this.isEnemy = true;
@@ -38,63 +33,11 @@ export default class EnemyAircraft extends Aircraft {
     this.evasionActive = false;
     // --- Accuracy variation ---
     this.aimError = aiCfg.aimError !== undefined ? aiCfg.aimError : 0.05; // radians (default ~2.8 deg)
-
-    // --- Formation integration ---
-    /**
-     * Reference to the formation manager (shared across AI)
-     * Should be set by game logic or AI spawner
-     * @type {FormationManager|null}
-     */
-    this.formationManager = config.formationManager || null;
-    /**
-     * ID of the formation this aircraft is assigned to (null if not assigned)
-     */
-    this.formationId = null;
-    /**
-     * Cached role info (e.g., 'leader', 'wingman')
-     */
-    this.formationRole = null;
-  }
-
-  /**
-   * Assign this aircraft to a formation.
-   * @param {FormationManager} manager
-   * @param {number} formationId
-   */
-  assignToFormation(manager, formationId) {
-    this.formationManager = manager;
-    this.formationId = formationId;
-  }
-
-  /**
-   * Remove this aircraft from its formation.
-   */
-  removeFromFormation() {
-    if (this.formationManager && this.formationId) {
-      this.formationManager.removeAircraft(this);
-    }
-    this.formationId = null;
-    this.formationRole = null;
   }
 
   update(dt, gameContext = {}) {
-    // --- Formation logic ---
-    let steeredByFormation = false;
-    if (this.formationManager && this.formationId) {
-      const assignment = this.formationManager.getAssignedPosition(this);
-      if (assignment && assignment.position) {
-        // Steer toward assigned formation position
-        this.steerTowards(assignment.position, dt, false);
-        this.formationRole = assignment.role;
-        steeredByFormation = true;
-      }
-    }
-    // AI logic (may include patrol/engage logic)
-    // Only call state machine update if not being steered by formation,
-    // or allow state machine to override if needed (e.g., evade)
-    if (!steeredByFormation || (this.stateDebug === 'evade')) {
-      this.stateMachine.update(dt, gameContext);
-    }
+    // AI logic
+    this.stateMachine.update(dt, gameContext);
     // Call base update for physics
     super.update(dt);
   }
@@ -328,39 +271,12 @@ export default class EnemyAircraft extends Aircraft {
       : new THREE.Vector3();
   }
 
-  /**
-   * Generalized: Can fire at arbitrary target (player or AI)
-   * @param {object} target - Target object with .position and .velocity
-   * @returns {boolean}
-   */
-  canFireAtTarget(target) {
-    if (!target || !target.position) return false;
-    // Use equipped weapon or fallback
-    let projectileSpeed = 600;
-    const weapon = this.equippedWeapon || (this.weapons && this.weapons[0]);
-    if (weapon && weapon.projectileType && weapon.projectileType.speed) {
-      projectileSpeed = weapon.projectileType.speed;
-    } else if (weapon && weapon.speed) {
-      projectileSpeed = weapon.speed;
-    }
-    // Predict intercept
-    const targetPos = target.position.clone();
-    const targetVel = target.velocity ? target.velocity.clone() : new THREE.Vector3();
-    const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
-    // Select weapon for this intercept
-    if (!this.selectWeaponForTarget(intercept)) return false;
-    // Check constraints for selected weapon
-    const selectedWeapon = this.weapons[this.currentWeaponIndex];
-    if (!selectedWeapon) return false;
-    // Cooldown, ammo, angle, range, lock, arming handled by selectWeaponForTarget
-    // Additional: check if target is in LOS
-    if (this.canDetectTarget && !this.canDetectTarget(target)) return false;
-    return true;
-  }
-
-  // Legacy wrapper for player
   canFireAtPlayer() {
-    return this.canFireAtTarget(window.playerAircraft);
+    // Placeholder: fire if within 1200m and generally facing player
+    if (!this.canSeePlayer()) return false;
+    const toPlayer = this.getPlayerPosition().sub(this.position).normalize();
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
+    return this.distanceToPlayer() < 1200 && forward.dot(toPlayer) > 0.85;
   }
 
   /**
@@ -404,6 +320,20 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   /**
+   * Selects the optimal weapon for the current target based on range, angle, ammo, and cooldown.
+   * Sets this.currentWeaponIndex to the selected weapon, or leaves unchanged if none valid.
+   * @param {THREE.Vector3} intercept - Predicted intercept position for aiming.
+   * @returns {boolean} True if a weapon was selected, false otherwise.
+   */
+  selectWeaponForTarget(intercept) {
+    if (!this.weapons || this.weapons.length === 0) return false;
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+    const toIntercept = intercept.clone().sub(this.position);
+    const dist = toIntercept.length();
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
+    const dirToIntercept = toIntercept.clone().normalize();
+    const angle = Math.acos(forward.dot(dirToIntercept));
     for (let i = 0; i < this.weapons.length; ++i) {
       const w = this.weapons[i];
       // Max range check
@@ -423,7 +353,6 @@ export default class EnemyAircraft extends Aircraft {
       if (w.requiresLock && typeof w.hasLock === 'function' && !w.hasLock(this.currentTarget)) continue;
       // Arming constraint (time/distance)
       if (typeof w.isArmed === 'function' && !w.isArmed()) continue;
-
       // Score: prefer missiles at long range, guns at short
       let score = 0;
       if (w.type === 'missile') {
@@ -438,18 +367,11 @@ export default class EnemyAircraft extends Aircraft {
       // Prefer ready weapons
       if (typeof w.isReady === 'function' && w.isReady()) score += 2;
       if (typeof w.ready === 'boolean' && w.ready) score += 2;
-
-      // Debug output for weapon selection and scoring
-      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-        console.log(`[AI] ${this.id} evaluating weapon ${w.name} (score: ${score})`);
-      }
-
       if (score > bestScore) {
         bestScore = score;
         bestIdx = i;
       }
     }
-
     if (bestIdx >= 0) {
       this.currentWeaponIndex = bestIdx;
       this.equippedWeapon = this.weapons[bestIdx];
@@ -457,6 +379,25 @@ export default class EnemyAircraft extends Aircraft {
     }
     return false;
   }
+
+  fireWeaponAtPlayer() {
+    // Predictive targeting: aim at intercept point
+    const player = window.playerAircraft;
+    if (!player) return;
+    // Use currently equipped weapon or fallback for projectile speed
+    let projectileSpeed = 600;
+    if (this.equippedWeapon && this.equippedWeapon.projectileType && this.equippedWeapon.projectileType.speed) {
+      projectileSpeed = this.equippedWeapon.projectileType.speed;
+    } else if (this.equippedWeapon && this.equippedWeapon.speed) {
+      projectileSpeed = this.equippedWeapon.speed;
+    }
+    const targetPos = player.position.clone();
+    const targetVel = player.velocity ? player.velocity.clone() : new THREE.Vector3();
+    const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
+    // Select best weapon for this intercept
+    if (!this.selectWeaponForTarget(intercept)) return; // No valid weapon
+    // Recompute projectile speed for selected weapon
+    const weapon = this.weapons[this.currentWeaponIndex];
     if (weapon && weapon.projectileType && weapon.projectileType.speed) {
       projectileSpeed = weapon.projectileType.speed;
     } else if (weapon && weapon.speed) {
@@ -479,7 +420,7 @@ export default class EnemyAircraft extends Aircraft {
       return;
     }
     // Missile lock
-    if (weapon && weapon.requiresLock && typeof weapon.hasLock === 'function' && !weapon.hasLock(target)) {
+    if (weapon && weapon.requiresLock && typeof weapon.hasLock === 'function' && !weapon.hasLock(this.currentTarget)) {
       if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
         console.log(`[AI] ${this.id} cannot fire: missile lock not acquired.`);
       }
@@ -493,11 +434,6 @@ export default class EnemyAircraft extends Aircraft {
       return;
     }
     this.fireWeapon();
-  }
-
-  // Legacy wrapper for player
-  fireWeaponAtPlayer() {
-    this.fireWeaponAtTarget(window.playerAircraft);
   }
 
   isUnderAttack() {
@@ -552,48 +488,7 @@ export default class EnemyAircraft extends Aircraft {
 
   startEvasionManeuver() {
     this.evasionActive = true;
-    this._evasionStartTime = performance.now();
-  }
-
-  // --- Evasive Maneuver Library ---
-  barrelRoll() {
-    this.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.9); // full roll
-    this.applyThrust(this.maxAccel * 0.8);
-    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-      console.log(`[AI] ${this.id} performs BARREL ROLL`);
-    }
-  }
-  splitS() {
-    this.applyPitch(-0.5); // hard pitch down
-    this.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.6);
-    this.applyThrust(this.maxAccel);
-    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-      console.log(`[AI] ${this.id} performs SPLIT-S`);
-    }
-  }
-  dive() {
-    this.applyPitch(-0.7);
-    this.applyThrust(this.maxAccel);
-    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-      console.log(`[AI] ${this.id} performs DIVE`);
-    }
-  }
-  hardTurn(direction) {
-    this.applyYaw(direction * 0.35);
-    this.applyRoll(direction * 0.45);
-    this.applyThrust(this.maxAccel);
-    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-      console.log(`[AI] ${this.id} performs HARD TURN (${direction > 0 ? 'RIGHT' : 'LEFT'})`);
-    }
-  }
-  randomJink() {
-    this.applyRoll((Math.random() - 0.5) * 0.6);
-    this.applyYaw((Math.random() - 0.5) * 0.4);
-    this.applyPitch((Math.random() - 0.5) * 0.3);
-    this.applyThrust(this.maxAccel * 0.8);
-    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-      console.log(`[AI] ${this.id} performs RANDOM JINK`);
-    }
+    // Optionally trigger a roll or random direction
   }
 
   updateEvasion(dt) {
@@ -657,26 +552,6 @@ export default class EnemyAircraft extends Aircraft {
       if (rand < 0.66) this.applyYaw((Math.random() - 0.5) * 0.12);
       if (rand > 0.66) this.applyPitch((Math.random() - 0.5) * 0.12);
       this.applyThrust(12000);
-    }
-    // Terrain-aware evasion
-    if (this.position.y < 100) {
-      this.applyPitch(0.2); // gentle climb
-    } else if (this.position.y > 500) {
-      this.applyPitch(-0.2); // gentle dive
-    }
-    // Scale evasion aggressiveness and countermeasure timing with aimError (difficulty)
-    const aimError = this.aimError !== undefined ? this.aimError : 0.05;
-    if (aimError > 0.1) {
-      this.applyThrust(this.maxAccel * 1.2);
-    } else if (aimError < 0.05) {
-      this.applyThrust(this.maxAccel * 0.8);
-    }
-    if (this.deployCountermeasure && (!this._lastCM || (performance.now() - this._lastCM) > 600)) {
-      this.deployCountermeasure('flare');
-      this._lastCM = performance.now();
-      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-        console.log(`[AI] ${this.id} deployed flare!`);
-      }
     }
   }
 

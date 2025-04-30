@@ -377,9 +377,6 @@ function TargetingDemo() {
 
 import { ControlSettingsMenu } from './input/ControlSettingsMenu';
 import ReactDOM from 'react-dom';
-import { difficultyManager } from './ai/DifficultyManager';
-import { playerPerformanceTracker } from './ai/PlayerPerformanceTracker';
-import { rubberBandManager } from './ai/RubberBandManager';
 
 function OverlayRoot() {
   const [pauseOpen, setPauseOpen] = useState(false);
@@ -529,29 +526,12 @@ function animate() {
   const now = performance.now();
   const dt = (now - lastFrameTime) / 1000;
   lastFrameTime = now;
-  // --- Player performance tracking (example hooks, customize as needed) ---
-  // Example: Track time engaged/evading (stub, replace with actual state checks)
-  if (window.playerAircraft && window.playerAircraft.isEngaged) {
-    playerPerformanceTracker.recordEngagedTime(dt);
-  }
-  if (window.playerAircraft && window.playerAircraft.isEvading) {
-    playerPerformanceTracker.recordEvadingTime(dt);
-  }
-  // --- Rubber-banding update ---
-  rubberBandManager.update();
   updateEnemies(dt, { player: window.playerAircraft });
   threeEnv.render();
 }
 animate();
 
 console.log('Top Gun Game: Entry point loaded!');
-
-// --- AI DifficultyManager Integration ---
-// Set default difficulty (can be changed via browser console for now)
-difficultyManager.setDifficulty('medium');
-window.difficultyManager = difficultyManager; // Expose for debugging/testing
-console.log('[AI] Current Difficulty:', difficultyManager.getDifficulty());
-console.log('[AI] Parameters:', difficultyManager.getAllParams());
 
 if (module.hot) {
   module.hot.accept();
