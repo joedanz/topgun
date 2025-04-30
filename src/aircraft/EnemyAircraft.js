@@ -340,7 +340,6 @@ export default class EnemyAircraft extends Aircraft {
     const interceptWithError = this.position.clone().add(errorDir.multiplyScalar(newIntercept.clone().sub(this.position).length()));
     this.setLockedTarget(interceptWithError);
     // Enforce dynamic constraints before firing
-    const weapon = this.weapons[this.currentWeaponIndex];
     // Cooldown check (canFire or isReady)
     if (weapon && ((typeof weapon.canFire === 'function' && !weapon.canFire()) || (typeof weapon.isReady === 'function' && !weapon.isReady()) || (typeof weapon.ready === 'boolean' && !weapon.ready))) {
       if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
@@ -366,8 +365,53 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   isUnderAttack() {
-    // Placeholder: randomly simulate being under attack
-    return Math.random() < 0.02; // ~2% chance per frame (to be replaced by real logic)
+    // --- Realistic threat detection ---
+    // 1. Missile lock detection
+    if (typeof window !== 'undefined' && window.sceneProjectiles) {
+      for (const proj of window.sceneProjectiles) {
+        // Check for missile projectiles with a target of this AI
+        if (proj && proj.type === 'missile' && proj.target === this && proj.locked) {
+          if (window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${this.id} is under missile lock!`);
+          }
+          return true;
+        }
+        // Check for any missile within 400m and approaching
+        if (proj && proj.type === 'missile' && proj.position && proj.direction) {
+          const toAI = this.position.clone().sub(proj.position);
+          if (toAI.length() < 400 && toAI.normalize().dot(proj.direction) > 0.85) {
+            if (window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${this.id} missile threat detected (proximity).`);
+            }
+            return true;
+          }
+        }
+        // Check for bullets/shells within 150m and approaching
+        if ((proj.type === 'bullet' || proj.type === 'shell') && proj.position && proj.direction) {
+          const toAI = this.position.clone().sub(proj.position);
+          if (toAI.length() < 150 && toAI.normalize().dot(proj.direction) > 0.9) {
+            if (window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${this.id} incoming bullet/shell detected.`);
+            }
+            return true;
+          }
+        }
+      }
+    }
+    // 2. (Optional) Player aiming detection
+    if (typeof window !== 'undefined' && window.playerAircraft) {
+      const player = window.playerAircraft;
+      const toAI = this.position.clone().sub(player.position);
+      const playerForward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.rotation).normalize();
+      // If player is aiming within 10 deg and within 1200m
+      if (toAI.length() < 1200 && playerForward.dot(toAI.normalize()) > 0.98) {
+        if (window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${this.id} is being targeted by player.`);
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   startEvasionManeuver() {
@@ -377,12 +421,66 @@ export default class EnemyAircraft extends Aircraft {
 
   updateEvasion(dt) {
     if (!this.evasionActive) return;
-    // Simple: random evasive movement
-    const rand = Math.random();
-    if (rand < 0.33) this.applyRoll((Math.random() - 0.5) * 0.15);
-    if (rand < 0.66) this.applyYaw((Math.random() - 0.5) * 0.12);
-    if (rand > 0.66) this.applyPitch((Math.random() - 0.5) * 0.12);
-    this.applyThrust(12000);
+    // --- Context-aware evasive maneuvers ---
+    let threatType = null;
+    if (this.isUnderAttack && this.isUnderAttack()) {
+      // Try to determine threat type for maneuver selection
+      if (typeof window !== 'undefined' && window.sceneProjectiles) {
+        for (const proj of window.sceneProjectiles) {
+          if (proj && proj.type === 'missile' && proj.target === this && proj.locked) {
+            threatType = 'missile_lock';
+            break;
+          }
+          if (proj && proj.type === 'missile' && proj.position && proj.direction) {
+            const toAI = this.position.clone().sub(proj.position);
+            if (toAI.length() < 400 && toAI.normalize().dot(proj.direction) > 0.85) {
+              threatType = 'missile_near';
+              break;
+            }
+          }
+          if ((proj.type === 'bullet' || proj.type === 'shell') && proj.position && proj.direction) {
+            const toAI = this.position.clone().sub(proj.position);
+            if (toAI.length() < 150 && toAI.normalize().dot(proj.direction) > 0.9) {
+              threatType = 'gunfire';
+              break;
+            }
+          }
+        }
+      }
+    }
+    // Pick maneuver based on threat
+    if (threatType === 'missile_lock' || threatType === 'missile_near') {
+      // Missile: break turn, split-S, or barrel roll
+      if (Math.random() < 0.5) {
+        this.applyYaw((Math.random() < 0.5 ? 1 : -1) * 0.25); // hard break turn
+        this.applyRoll((Math.random() - 0.5) * 0.5);
+      } else {
+        this.applyPitch(-0.3); // split-S dive
+        this.applyRoll((Math.random() - 0.5) * 0.5);
+      }
+      this.applyThrust(this.maxAccel);
+      // Deploy countermeasures if available and cooldown allows
+      if (this.deployCountermeasure && (!this._lastCM || (performance.now() - this._lastCM) > 1200)) {
+        this.deployCountermeasure('flare');
+        this._lastCM = performance.now();
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${this.id} deployed flare!`);
+        }
+      }
+    } else if (threatType === 'gunfire') {
+      // Gunfire: jink (random roll/yaw/pitch)
+      this.applyRoll((Math.random() - 0.5) * 0.3);
+      this.applyYaw((Math.random() - 0.5) * 0.25);
+      this.applyPitch((Math.random() - 0.5) * 0.18);
+      this.applyThrust(this.maxAccel * 0.8);
+    } else {
+      // Fallback: random evasive movement
+      const rand = Math.random();
+      if (rand < 0.33) this.applyRoll((Math.random() - 0.5) * 0.15);
+      if (rand < 0.66) this.applyYaw((Math.random() - 0.5) * 0.12);
+      if (rand > 0.66) this.applyPitch((Math.random() - 0.5) * 0.12);
+      this.applyThrust(12000);
+    }
   }
 
   endEvasionManeuver() {

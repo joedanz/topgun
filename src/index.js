@@ -20,6 +20,8 @@ import './components/PauseMenu.css';
 
 const appDiv = document.getElementById('app');
 const threeEnv = new ThreeEnvironment(appDiv);
+// Expose the Three.js scene globally so enemies can be added from console
+window.scene = threeEnv.scene;
 
 // Mount HUD overlay
 const hudDiv = document.createElement('div');
@@ -114,9 +116,15 @@ function getEnemyTargets() {
 
 // --- Enemy Spawning ---
 import EnemyAircraft from './aircraft/EnemyAircraft';
+import Aircraft from './aircraft/Aircraft';
+
+// Expose classes and libraries globally for browser console testing
+window.EnemyAircraft = EnemyAircraft;
+window.THREE = THREE;
 
 function spawnEnemies(num = 3) {
-  const enemies = [];
+  // Use the existing enemies array if present, otherwise start fresh
+  const enemies = window.enemies || [];
   for (let i = 0; i < num; ++i) {
     const enemy = new EnemyAircraft({
       type: 'MiG',
@@ -134,12 +142,61 @@ function spawnEnemies(num = 3) {
         waypointRadius: 100
       }
     });
-    enemy.id = 'enemy-' + i;
+    // Assign a unique id for React and game logic
+    enemy.id = 'enemy-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
+
+    // Attach a debug mesh for visibility (always visible, not affected by lighting)
+    enemy.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(10, 4, 20),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    );
+    // Place each enemy at a unique, visible location for debugging
+    enemy.mesh.position.set(i * 20, 100, 0); // Space out along x-axis
+    enemy.position.copy(enemy.mesh.position);
+    // Optionally: store reference to logic object
+    enemy.mesh.userData.logic = enemy;
+
+    // Add the mesh to the scene for debug visibility
+    if (window.scene) {
+      window.scene.add(enemy.mesh);
+      console.log('Added enemy mesh to scene at', enemy.mesh.position);
+    }
     enemies.push(enemy);
   }
   window.enemies = enemies;
 }
 
+// Expose spawnEnemies globally for testing
+window.spawnEnemies = spawnEnemies;
+
+// Create player aircraft and expose it globally
+function createPlayerAircraft() {
+  const player = new Aircraft({
+    type: 'F/A-18',  // Player aircraft type
+    mass: 10500,     // Appropriate mass for player aircraft
+    position: new THREE.Vector3(0, 12000, 0),  // Starting position
+    rotation: new THREE.Quaternion(),
+    weapons: [
+      // Add default weapons here if needed
+    ],
+    health: 100
+  });
+  
+  // Expose the player to the window for AI and debug scripts
+  window.playerAircraft = player;
+  
+  // Add to the scene if needed
+  if (window.scene) {
+    window.scene.add(player);
+  }
+  
+  return player;
+}
+
+// Create player aircraft before spawning enemies
+createPlayerAircraft();
+
+// Then spawn enemies
 spawnEnemies(3);
 
 // --- Enemy AI update in main game loop ---
