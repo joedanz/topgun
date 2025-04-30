@@ -533,6 +533,113 @@ animate();
 
 console.log('Top Gun Game: Entry point loaded!');
 
+// --- Debug/Dev Menu Integration ---
+(function setupDebugMenu() {
+  if (document.getElementById('debug-menu')) return; // Prevent duplicates
+  const menu = document.createElement('div');
+  menu.id = 'debug-menu';
+  menu.style.position = 'fixed';
+  menu.style.top = '10px';
+  menu.style.right = '10px';
+  menu.style.background = 'rgba(0,0,0,0.85)';
+  menu.style.color = '#fff';
+  menu.style.padding = '14px';
+  menu.style.zIndex = 10001;
+  menu.style.borderRadius = '8px';
+  menu.style.fontSize = '14px';
+  menu.innerHTML = `
+    <h4 style="margin-top:0">Debug Menu</h4>
+    <button id="test-ai-engagement">AI Engagement Test</button><br><br>
+    <label style="display:block;margin-bottom:4px">
+      <input type="checkbox" id="debug-ai-aim" /> Show AI Aim Line
+    </label>
+    <label style="display:block;margin-bottom:4px">
+      <input type="checkbox" id="debug-ai-stats" /> Log AI Stats
+    </label>
+    <button id="close-debug-menu" style="margin-top:8px;float:right">×</button>
+  `;
+  document.body.appendChild(menu);
+  document.getElementById('close-debug-menu').onclick = () => menu.remove();
+  document.getElementById('debug-ai-aim').onchange = e => window.DEBUG_AI_AIM = e.target.checked;
+  document.getElementById('debug-ai-stats').onchange = e => window.DEBUG_AI_STATS = e.target.checked;
+  document.getElementById('test-ai-engagement').onclick = () => runAIEngagementTest();
+
+  // --- Test Scenario ---
+  function runAIEngagementTest() {
+    // Remove existing test actors
+    if (window.testPlayer && window.scene) window.scene.remove(window.testPlayer.mesh);
+    if (window.testEnemy && window.scene) window.scene.remove(window.testEnemy.mesh);
+    window.testPlayer = undefined;
+    window.testEnemy = undefined;
+
+    // Import AI config if not already
+    let aiConfigs = window.aiDifficultyConfigs;
+    if (!aiConfigs) {
+      try {
+        aiConfigs = require('./ai/aiDifficultyConfigs').aiDifficultyConfigs;
+        window.aiDifficultyConfigs = aiConfigs;
+      } catch (e) {
+        aiConfigs = {
+          medium: { aimError: 0.06, reactionTime: 0.6, predictionAccuracy: 0.75, minHitProbability: 0.35 }
+        };
+      }
+    }
+    // Import classes if not already
+    const EnemyAircraft = window.EnemyAircraft || require('./aircraft/EnemyAircraft').default;
+    const PlayerAircraft = window.PlayerAircraft || require('./aircraft/PlayerAircraft').default;
+    const THREE = window.THREE || require('three');
+
+    // Spawn test player
+    const player = new PlayerAircraft({
+      position: new THREE.Vector3(0, 100, 0),
+      velocity: new THREE.Vector3(0, 0, -200)
+    });
+    window.testPlayer = player;
+    window.scene.add(player.mesh);
+
+    // Spawn test enemy
+    const enemy = new EnemyAircraft({
+      position: new THREE.Vector3(0, 100, 1200),
+      aiConfig: aiConfigs['medium']
+    });
+    window.testEnemy = enemy;
+    window.scene.add(enemy.mesh);
+
+    // Test loop (separate from main game loop)
+    function testLoop() {
+      if (!window.testPlayer || !window.testEnemy) return;
+      const dt = 1/60;
+      window.testPlayer.update(dt);
+      window.testEnemy.update(dt, { playerAircraft: window.testPlayer });
+      // Draw aim line if enabled
+      if (window.DEBUG_AI_AIM && window.testEnemy._lastAimPoint) {
+        if (!window.testEnemy._aimLine) {
+          const material = new THREE.LineBasicMaterial({ color: 0xff00ff });
+          const points = [window.testEnemy.position.clone(), window.testEnemy._lastAimPoint.clone()];
+          const geometry = new THREE.BufferGeometry().setFromPoints(points);
+          window.testEnemy._aimLine = new THREE.Line(geometry, material);
+          window.scene.add(window.testEnemy._aimLine);
+        } else {
+          window.testEnemy._aimLine.geometry.setFromPoints([
+            window.testEnemy.position.clone(),
+            window.testEnemy._lastAimPoint.clone()
+          ]);
+        }
+      } else if (window.testEnemy._aimLine) {
+        window.scene.remove(window.testEnemy._aimLine);
+        window.testEnemy._aimLine = null;
+      }
+      // Optionally log stats
+      if (window.DEBUG_AI_STATS) {
+        // Example: log every shot or hit/miss in EnemyAircraft.fireWeaponAtPlayer()
+      }
+      window._testLoopId = requestAnimationFrame(testLoop);
+    }
+    if (window._testLoopId) cancelAnimationFrame(window._testLoopId);
+    testLoop();
+  }
+})();
+
 if (module.hot) {
   module.hot.accept();
   console.log('HMR enabled');
