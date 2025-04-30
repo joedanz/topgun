@@ -347,20 +347,6 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   /**
-   * Selects the optimal weapon for the current target based on range, angle, ammo, and cooldown.
-   * Sets this.currentWeaponIndex to the selected weapon, or leaves unchanged if none valid.
-   * @param {THREE.Vector3} intercept - Predicted intercept position for aiming.
-   * @returns {boolean} True if a weapon was selected, false otherwise.
-   */
-  selectWeaponForTarget(intercept) {
-    if (!this.weapons || this.weapons.length === 0) return false;
-    let bestIdx = -1;
-    let bestScore = -Infinity;
-    const toIntercept = intercept.clone().sub(this.position);
-    const dist = toIntercept.length();
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
-    const dirToIntercept = toIntercept.clone().normalize();
-    const angle = Math.acos(forward.dot(dirToIntercept));
     for (let i = 0; i < this.weapons.length; ++i) {
       const w = this.weapons[i];
       // Max range check
@@ -380,6 +366,7 @@ export default class EnemyAircraft extends Aircraft {
       if (w.requiresLock && typeof w.hasLock === 'function' && !w.hasLock(this.currentTarget)) continue;
       // Arming constraint (time/distance)
       if (typeof w.isArmed === 'function' && !w.isArmed()) continue;
+
       // Score: prefer missiles at long range, guns at short
       let score = 0;
       if (w.type === 'missile') {
@@ -394,11 +381,18 @@ export default class EnemyAircraft extends Aircraft {
       // Prefer ready weapons
       if (typeof w.isReady === 'function' && w.isReady()) score += 2;
       if (typeof w.ready === 'boolean' && w.ready) score += 2;
+
+      // Debug output for weapon selection and scoring
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} evaluating weapon ${w.name} (score: ${score})`);
+      }
+
       if (score > bestScore) {
         bestScore = score;
         bestIdx = i;
       }
     }
+
     if (bestIdx >= 0) {
       this.currentWeaponIndex = bestIdx;
       this.equippedWeapon = this.weapons[bestIdx];
@@ -406,27 +400,6 @@ export default class EnemyAircraft extends Aircraft {
     }
     return false;
   }
-
-  /**
-   * Generalized: Fire at arbitrary target (player or AI)
-   * @param {object} target - Target object with .position and .velocity
-   */
-  fireWeaponAtTarget(target) {
-    if (!target || !target.position) return;
-    // Use currently equipped weapon or fallback for projectile speed
-    let projectileSpeed = 600;
-    if (this.equippedWeapon && this.equippedWeapon.projectileType && this.equippedWeapon.projectileType.speed) {
-      projectileSpeed = this.equippedWeapon.projectileType.speed;
-    } else if (this.equippedWeapon && this.equippedWeapon.speed) {
-      projectileSpeed = this.equippedWeapon.speed;
-    }
-    const targetPos = target.position.clone();
-    const targetVel = target.velocity ? target.velocity.clone() : new THREE.Vector3();
-    const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
-    // Select best weapon for this intercept
-    if (!this.selectWeaponForTarget(intercept)) return; // No valid weapon
-    // Recompute projectile speed for selected weapon
-    const weapon = this.weapons[this.currentWeaponIndex];
     if (weapon && weapon.projectileType && weapon.projectileType.speed) {
       projectileSpeed = weapon.projectileType.speed;
     } else if (weapon && weapon.speed) {
