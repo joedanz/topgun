@@ -2,10 +2,25 @@
 // Defines the state logic for enemy AI (patrol, engage, evade)
 import * as THREE from 'three';
 
+import { difficultyManager } from './DifficultyManager';
+
 export function createEnemyAIStates(enemy, config = {}) {
   return {
     patrol: {
       onEnter() {
+        // --- DIFFICULTY PARAMS ---
+        enemy.reactionTime = difficultyManager.getParam('reactionTime');
+        enemy.aimError = 1 - difficultyManager.getParam('accuracy'); // Lower is better aim
+        enemy.aggressiveness = difficultyManager.getParam('aggressiveness');
+        enemy.tactics = difficultyManager.getParam('tactics');
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} DIFFICULTY:`, {
+            reactionTime: enemy.reactionTime,
+            aimError: enemy.aimError,
+            aggressiveness: enemy.aggressiveness,
+            tactics: enemy.tactics
+          });
+        }
         // Assign a patrol route with randomization/perturbation for unpredictability
         enemy.setPatrolRoute(
           config.patrolRoute || null,
@@ -82,6 +97,19 @@ export function createEnemyAIStates(enemy, config = {}) {
     },
     engage: {
       onEnter(gameContext = {}) {
+        // --- DIFFICULTY PARAMS ---
+        enemy.reactionTime = difficultyManager.getParam('reactionTime');
+        enemy.aimError = 1 - difficultyManager.getParam('accuracy');
+        enemy.aggressiveness = difficultyManager.getParam('aggressiveness');
+        enemy.tactics = difficultyManager.getParam('tactics');
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} DIFFICULTY:`, {
+            reactionTime: enemy.reactionTime,
+            aimError: enemy.aimError,
+            aggressiveness: enemy.aggressiveness,
+            tactics: enemy.tactics
+          });
+        }
         enemy.acquireTarget(gameContext && gameContext.targets ? gameContext.targets : [window.playerAircraft]);
         enemy.stateDebug = 'engage';
         enemy.lostTargetTimer = 0;
@@ -141,6 +169,19 @@ export function createEnemyAIStates(enemy, config = {}) {
     },
     evade: {
       onEnter() {
+        // --- DIFFICULTY PARAMS ---
+        enemy.reactionTime = difficultyManager.getParam('reactionTime');
+        enemy.aimError = 1 - difficultyManager.getParam('accuracy');
+        enemy.aggressiveness = difficultyManager.getParam('aggressiveness');
+        enemy.tactics = difficultyManager.getParam('tactics');
+        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+          console.log(`[AI] ${enemy.id} DIFFICULTY:`, {
+            reactionTime: enemy.reactionTime,
+            aimError: enemy.aimError,
+            aggressiveness: enemy.aggressiveness,
+            tactics: enemy.tactics
+          });
+        }
         enemy.stateDebug = 'evade';
         enemy.startEvasionManeuver();
         enemy._evasionStartTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
