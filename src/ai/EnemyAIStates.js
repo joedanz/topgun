@@ -112,10 +112,20 @@ export function createEnemyAIStates(enemy, config = {}) {
           // Steer toward target (with aggression if needsManeuver)
           enemy.steerTowards(enemy.currentTarget.position, dt, tactical.needsManeuver);
           // Fire if in good attack position
-          if (tactical.canAttack && enemy.canFireAtTarget && enemy.canFireAtTarget()) {
-            enemy.fireWeaponAtTarget();
+          if (
+            tactical.canAttack &&
+            enemy.canFireAtTarget &&
+            enemy.currentTarget &&
+            enemy.canFireAtTarget(enemy.currentTarget)
+          ) {
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} firing at target ${enemy.currentTarget.id || '[unknown]'}`);
+              console.log(`[AI] ${enemy.id} can fire at target ${enemy.currentTarget.id || '[unknown]'}`);
+            }
+            enemy.fireWeaponAtTarget(enemy.currentTarget);
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              const weapon = enemy.equippedWeapon;
+              const aimError = enemy.aimError !== undefined ? enemy.aimError : 0.05;
+              console.log(`[AI] ${enemy.id} fired ${weapon ? weapon.name : '[unknown weapon]'} at ${enemy.currentTarget.id || '[unknown]'} with aimError=${aimError}`);
             }
           }
           // Tactical: evade if under attack or at a disadvantage
