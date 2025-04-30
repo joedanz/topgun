@@ -42,17 +42,41 @@ export default class FormationManager {
   assignRoles(formation) {
     const { type, members, leader } = formation;
     if (!members.length) return;
-    // For now, only V-formation is implemented
-    // Slot 0: leader, then alternate left/right
     formation.assignments.clear();
-    let slot = 0;
-    formation.assignments.set(leader, 0);
-    let left = true, offset = 1;
-    for (const m of members) {
-      if (m === leader) continue;
-      formation.assignments.set(m, left ? -offset : offset);
-      if (!left) offset++;
-      left = !left;
+    switch (type) {
+      case 'echelon':
+        // Echelon right: slot 0 = leader, 1 = right, 2 = right 2, etc.
+        formation.assignments.set(leader, 0);
+        let idx = 1;
+        for (const m of members) {
+          if (m === leader) continue;
+          formation.assignments.set(m, idx);
+          idx++;
+        }
+        break;
+      case 'line_abreast':
+        // Line abreast: leader center, wingmen left/right
+        formation.assignments.set(leader, 0);
+        let leftIdx = -1, rightIdx = 1, toggle = true;
+        for (const m of members) {
+          if (m === leader) continue;
+          formation.assignments.set(m, toggle ? leftIdx-- : rightIdx++);
+          toggle = !toggle;
+        }
+        break;
+      case 'V':
+      default:
+        // V-formation: leader, alternate left/right
+        let slot = 0;
+        formation.assignments.set(leader, 0);
+        let left = true, offset = 1;
+        for (const m of members) {
+          if (m === leader) continue;
+          formation.assignments.set(m, left ? -offset : offset);
+          if (!left) offset++;
+          left = !left;
+        }
+        break;
     }
   }
 
@@ -97,8 +121,20 @@ export default class FormationManager {
    * Update a single formation (spacing, tactical state, etc.)
    */
   updateFormation(formation, dt, context) {
-    // Placeholder: can add dynamic spacing, tactical logic, etc.
-    // For now, static spacing and type
+    // Dynamic spacing: adjust based on leader's speed if available
+    if (formation.leader && formation.leader.getSpeed) {
+      const baseSpacing = formation.spacing;
+      const speed = formation.leader.getSpeed();
+      // Example: increase spacing at higher speeds (linear scale)
+      formation.dynamicSpacing = baseSpacing + Math.min(Math.max((speed - 400) * 0.08, 0), 100);
+    } else {
+      formation.dynamicSpacing = formation.spacing;
+    }
+    // Example tactical logic: switch to 'engage' if any member detects a player
+    if (context && context.detectedPlayer) {
+      formation.tacticalState = 'engage';
+    }
+    // Could add more coordinated attack/retreat logic here
   }
 
   /**
@@ -110,17 +146,29 @@ export default class FormationManager {
       if (formation.members.includes(aircraft)) {
         const slot = formation.assignments.get(aircraft);
         if (slot === undefined) return null;
-        // Compute offset from leader based on slot and formation type
         const leader = formation.leader;
-        const spacing = formation.spacing;
+        // Use dynamicSpacing if available
+        const spacing = formation.dynamicSpacing || formation.spacing;
         let offsetVec = new THREE.Vector3();
-        if (slot === 0) {
-          offsetVec.set(0, 0, 0); // Leader at center
-        } else {
-          // For V-formation: alternate left/right, behind leader
-          const side = slot < 0 ? -1 : 1;
-          const rank = Math.abs(slot);
-          offsetVec.set(side * spacing * rank, 0, -spacing * rank);
+        switch (formation.type) {
+          case 'echelon':
+            // Echelon: all to right of leader
+            offsetVec.set(spacing * slot, 0, -spacing * slot * 0.7);
+            break;
+          case 'line_abreast':
+            // Line abreast: all at same z, spread on x
+            offsetVec.set(spacing * slot, 0, 0);
+            break;
+          case 'V':
+          default:
+            if (slot === 0) {
+              offsetVec.set(0, 0, 0);
+            } else {
+              const side = slot < 0 ? -1 : 1;
+              const rank = Math.abs(slot);
+              offsetVec.set(side * spacing * rank, 0, -spacing * rank);
+            }
+            break;
         }
         // Transform offset relative to leader's orientation
         const leaderPos = leader.position.clone();
@@ -128,6 +176,24 @@ export default class FormationManager {
         offsetVec.applyQuaternion(leaderRot);
         const worldPos = leaderPos.add(offsetVec);
         const role = slot === 0 ? 'leader' : 'wingman';
+        // --- Communication delay simulation ---
+        // If difficulty is set, delay updates for non-leader based on difficulty
+        let delayMs = 0;
+        if (formation.difficulty && slot !== 0) {
+          // Easy: 200-400ms, Hard: 30-80ms
+          delayMs = formation.difficulty === 'easy' ? 200 + Math.random()*200 :
+                    formation.difficulty === 'hard' ? 30 + Math.random()*50 :
+                    100 + Math.random()*100;
+        }
+        // Store last update time per aircraft (simulate delay)
+        if (!aircraft._formationLastUpdate) aircraft._formationLastUpdate = 0;
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        if (delayMs && now - aircraft._formationLastUpdate < delayMs) {
+          // Return previous position if within delay window
+          return aircraft._formationLastAssignment || { position: worldPos, role };
+        }
+        aircraft._formationLastUpdate = now;
+        aircraft._formationLastAssignment = { position: worldPos, role };
         return { position: worldPos, role };
       }
     }
