@@ -4,7 +4,23 @@
 import { difficultyManager } from './DifficultyManager';
 import { playerPerformanceTracker } from './PlayerPerformanceTracker';
 
+/**
+ * RubberBandManager
+ * Listens to player performance and adjusts AI difficulty parameters dynamically.
+ * Ensures challenge remains fair and engaging by scaling AI up/down in response to player skill.
+ *
+ * Usage:
+ *   rubberBandManager.update(); // call in main game loop
+ *   // Parameters are adjusted via DifficultyManager
+ */
 class RubberBandManager {
+  /**
+   * @constructor
+   * @property {number} lastAdjustment - Timestamp of last adjustment.
+   * @property {number} cooldown - Minimum ms between adjustments.
+   * @property {number} maxStep - Max parameter change per adjustment.
+   * @property {object} paramBounds - Min/max for each parameter.
+   */
   constructor() {
     this.lastAdjustment = Date.now();
     this.cooldown = 5000; // ms between adjustments
@@ -17,6 +33,10 @@ class RubberBandManager {
     };
   }
 
+  /**
+   * Checks player performance and adjusts AI difficulty if needed.
+   * Should be called once per frame (in the main game loop).
+   */
   update() {
     const now = Date.now();
     if (now - this.lastAdjustment < this.cooldown) return;
@@ -40,6 +60,10 @@ class RubberBandManager {
     }
   }
 
+  /**
+   * Adjusts AI difficulty parameters by delta, clamped to allowed bounds.
+   * @param {number} delta - The amount to adjust parameters by (positive or negative).
+   */
   adjustDifficulty(delta) {
     const params = ['reactionTime', 'accuracy', 'aggressiveness', 'tactics'];
     params.forEach(param => {
