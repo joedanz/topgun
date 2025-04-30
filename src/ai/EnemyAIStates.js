@@ -119,11 +119,18 @@ export function createEnemyAIStates(enemy, config = {}) {
             }
           }
           // Tactical: evade if under attack or at a disadvantage
+          // --- Evasion Cooldown: block rapid re-entry ---
           if (enemy.isUnderAttack && enemy.isUnderAttack()) {
-            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} switching to EVADE (under attack)`);
+            if (enemy._evasionCooldown && enemy._evasionCooldown > 0) {
+              if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+                console.log(`[AI] ${enemy.id} evade blocked by cooldown (${enemy._evasionCooldown.toFixed(2)}s left)`);
+              }
+            } else {
+              if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+                console.log(`[AI] ${enemy.id} switching to EVADE (under attack)`);
+              }
+              enemy.stateMachine.transition('evade');
             }
-            enemy.stateMachine.transition('evade');
           }
         }
       },
@@ -137,11 +144,11 @@ export function createEnemyAIStates(enemy, config = {}) {
         // Set evasion parameters based on difficulty
         let minEvadeTime = 1.7, maneuverAggression = 0.6, cmProbability = 0.5;
         if (difficulty === 'easy') {
-          minEvadeTime = 2.0; maneuverAggression = 0.45; cmProbability = 0.3;
+          minEvadeTime = 2.2; maneuverAggression = 0.45; cmProbability = 0.3;
         } else if (difficulty === 'hard') {
-          minEvadeTime = 1.1; maneuverAggression = 0.85; cmProbability = 0.75;
+          minEvadeTime = 1.0; maneuverAggression = 0.85; cmProbability = 0.75;
         } else if (difficulty === 'medium') {
-          minEvadeTime = 1.5; maneuverAggression = 0.6; cmProbability = 0.5;
+          minEvadeTime = 1.7; maneuverAggression = 0.6; cmProbability = 0.5;
         }
         enemy._evadeMinTime = minEvadeTime;
         enemy._evasionAggression = maneuverAggression;
@@ -150,10 +157,18 @@ export function createEnemyAIStates(enemy, config = {}) {
         enemy.startEvasionManeuver && enemy.startEvasionManeuver();
         enemy._evadeTimer = 0;
         if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${enemy.id} entering EVADE state (difficulty: ${difficulty})`);
+          console.log(`[AI] ${enemy.id} entering EVADE state (difficulty: ${difficulty}, minEvadeTime: ${minEvadeTime}s)`);
         }
       },
       onUpdate(dt) {
+        // --- Evasion Cooldown ---
+        if (enemy._evasionCooldown && enemy._evasionCooldown > 0) {
+          enemy._evasionCooldown -= dt;
+          if (enemy._evasionCooldown < 0) enemy._evasionCooldown = 0;
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} evasion cooldown active: ${enemy._evasionCooldown.toFixed(2)}s left`);
+          }
+        }
         // Pass aggression and CM probability to evasion logic
         enemy.updateEvasion(dt, {
           aggression: enemy._evasionAggression,
@@ -161,14 +176,22 @@ export function createEnemyAIStates(enemy, config = {}) {
         });
         enemy._evadeTimer = (enemy._evadeTimer || 0) + dt;
         // Require minimum evasion duration before recovery
-        const minEvadeTime = enemy._evadeMinTime || config.minEvadeTime || 1.5;
+        const minEvadeTime = enemy._evadeMinTime || config.minEvadeTime || 1.7;
+        // Configurable: require distance check only if config.evadeDistance is set
+        let requireDistance = typeof config.evadeDistance !== 'undefined';
+        let safeDistance = requireDistance ? (enemy.distanceToPlayer() > config.evadeDistance) : true;
         if (enemy._evadeTimer >= minEvadeTime) {
-          // Return to engage if safe
-          if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > (config.evadeDistance || 300)) {
+          if (!enemy.isUnderAttack() && safeDistance) {
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} recovery: transitioning from EVADE to ENGAGE`);
+              console.log(`[AI] ${enemy.id} recovery: transitioning from EVADE to ENGAGE (timer: ${enemy._evadeTimer.toFixed(2)}s, threat: ${enemy.isUnderAttack()}, safeDistance: ${safeDistance})`);
             }
+            // Set cooldown before AI can re-enter evade
+            enemy._evasionCooldown = (typeof config.evasionCooldown === 'number') ? config.evasionCooldown : 1.2;
             enemy.stateMachine.transition('engage');
+          } else {
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${enemy.id} remains in EVADE (timer: ${enemy._evadeTimer.toFixed(2)}s, threat: ${enemy.isUnderAttack()}, safeDistance: ${safeDistance})`);
+            }
           }
         }
       },
@@ -178,7 +201,7 @@ export function createEnemyAIStates(enemy, config = {}) {
         if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
           console.log(`[AI] ${enemy.id} exiting EVADE state`);
         }
-      }
+      },
     },
 
   };

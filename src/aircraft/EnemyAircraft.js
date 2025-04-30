@@ -69,6 +69,11 @@ export default class EnemyAircraft extends Aircraft {
 
   constructor(config = {}) {
     super(config);
+    // --- Threat memory ---
+    this._threatMemoryTimer = 0;
+    this._threatMemoryDuration = 2.0; // seconds
+
+    super(config);
     this.isEnemy = true;
     this.stateDebug = 'patrol';
     this.patrolRoute = config.patrolRoute || [];
@@ -101,6 +106,12 @@ export default class EnemyAircraft extends Aircraft {
   }
 
   update(dt, gameContext = {}) {
+    // --- Threat memory timer decrement ---
+    if (this._threatMemoryTimer > 0) {
+      this._threatMemoryTimer -= dt;
+      if (this._threatMemoryTimer < 0) this._threatMemoryTimer = 0;
+    }
+
     // AI logic
     this.stateMachine.update(dt, gameContext);
     // Call base update for physics
@@ -619,56 +630,132 @@ export default class EnemyAircraft extends Aircraft {
     }
   }
 
-  isUnderAttack() {
-    // --- Realistic threat detection ---
-    // 1. Missile lock detection
+  // --- Missile threat detection helper ---
+  getIncomingMissileThreats() {
+    // Returns array of incoming missile threats with distance, closure, and TTI
+    const threats = [];
     if (typeof window !== 'undefined' && window.sceneProjectiles) {
       for (const proj of window.sceneProjectiles) {
-        // Check for missile projectiles with a target of this AI
-        if (proj && proj.type === 'missile' && proj.target === this && proj.locked) {
-          if (window.DEBUG_AI_STATE) {
-            console.log(`[AI] ${this.id} is under missile lock!`);
-          }
-          return true;
-        }
-        // Check for any missile within 400m and approaching
-        if (proj && proj.type === 'missile' && proj.position && proj.direction) {
-          const toAI = this.position.clone().sub(proj.position);
-          if (toAI.length() < 400 && toAI.normalize().dot(proj.direction) > 0.85) {
-            if (window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${this.id} missile threat detected (proximity).`);
-            }
-            return true;
-          }
-        }
-        // Check for bullets/shells within 150m and approaching
-        if ((proj.type === 'bullet' || proj.type === 'shell') && proj.position && proj.direction) {
-          const toAI = this.position.clone().sub(proj.position);
-          if (toAI.length() < 150 && toAI.normalize().dot(proj.direction) > 0.9) {
-            if (window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${this.id} incoming bullet/shell detected.`);
-            }
-            return true;
-          }
+        if (!proj || proj.type !== 'missile' || !proj.position) continue;
+        // Must be locked on us or have us as target
+        if (proj.target !== this && !proj.locked) continue;
+        // Distance
+        const toAI = this.position.clone().sub(proj.position);
+        const dist = toAI.length();
+        // Missile velocity (estimate)
+        const missileVel = proj.velocity ? proj.velocity.clone() : new THREE.Vector3();
+        // Relative velocity toward AI
+        const relVel = missileVel.clone().sub(this.velocity || new THREE.Vector3());
+        const closure = -relVel.dot(toAI.clone().normalize()); // positive = closing
+        // Time-to-impact (avoid div by zero)
+        const tti = (closure > 10) ? dist / closure : Infinity;
+        // Only consider as threat if closing and within 800m
+        if (closure > 10 && dist < 800) {
+          threats.push({ missile: proj, dist, closure, tti });
         }
       }
     }
-    // 2. (Optional) Player aiming detection
+    return threats;
+  }
+
+  // --- Gunfire threat detection helper ---
+  getIncomingGunfireThreats() {
+    // Returns array of incoming gunfire threats (bullets/shells) with distance and TTI
+    const threats = [];
+    if (typeof window !== 'undefined' && window.sceneProjectiles) {
+      for (const proj of window.sceneProjectiles) {
+        if (!proj || (proj.type !== 'bullet' && proj.type !== 'shell') || !proj.position || !proj.direction) continue;
+        const toAI = this.position.clone().sub(proj.position);
+        const dist = toAI.length();
+        // Only consider if approaching and within 200m
+        if (dist > 200 || toAI.normalize().dot(proj.direction) < 0.92) continue;
+        // Estimate projectile speed (fallback to 800m/s)
+        const projSpeed = proj.velocity ? proj.velocity.length() : 800;
+        // Time-to-impact
+        const tti = projSpeed > 10 ? dist / projSpeed : Infinity;
+        threats.push({ projectile: proj, dist, tti });
+      }
+    }
+    return threats;
+  }
+
+  // --- Multi-threat awareness and ranking ---
+  getThreatSummary() {
+    // Collect all missile and gunfire threats, rank by TTI
+    const missileThreats = this.getIncomingMissileThreats().map(t => ({
+      type: 'missile',
+      obj: t.missile,
+      dist: t.dist,
+      tti: t.tti,
+      closure: t.closure
+    }));
+    const gunfireThreats = this.getIncomingGunfireThreats().map(t => ({
+      type: 'gunfire',
+      obj: t.projectile,
+      dist: t.dist,
+      tti: t.tti
+    }));
+    // Concatenate and sort by TTI (lowest = most urgent)
+    // --- Player aiming threat integration ---
+    let aimingThreat = null;
     if (typeof window !== 'undefined' && window.playerAircraft) {
       const player = window.playerAircraft;
       const toAI = this.position.clone().sub(player.position);
       const playerForward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.rotation).normalize();
       // If player is aiming within 10 deg and within 1200m
       if (toAI.length() < 1200 && playerForward.dot(toAI.normalize()) > 0.98) {
+        aimingThreat = {
+          type: 'aiming',
+          obj: player,
+          dist: toAI.length(),
+          tti: 1.5, // Assign moderate urgency (tunable)
+        };
         if (window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${this.id} is being targeted by player.`);
+          console.log(`[AI] ${this.id} is being targeted by player (aiming threat)`);
         }
-        return true;
       }
     }
+    let allThreats = missileThreats.concat(gunfireThreats);
+    if (aimingThreat) allThreats.push(aimingThreat);
+    allThreats.sort((a, b) => a.tti - b.tti);
+    return allThreats;
+  }
+
+  isUnderAttack() {
+    // --- Realistic threat detection ---
+    // Multi-threat awareness: check all threats and rank by urgency
+    const threats = this.getThreatSummary();
+    if (threats.length > 0) {
+      // Threat detected: set memory timer
+      this._threatMemoryTimer = this._threatMemoryDuration;
+      const t = threats[0];
+      if (window.DEBUG_AI_STATE) {
+        if (t.type === 'missile') {
+          console.log(`[AI] ${this.id} missile threat: dist=${t.dist.toFixed(1)}m, closure=${t.closure !== undefined ? t.closure.toFixed(1) : 'n/a'}m/s, tti=${t.tti.toFixed(1)}s`);
+        } else if (t.type === 'gunfire') {
+          console.log(`[AI] ${this.id} gunfire threat: dist=${t.dist.toFixed(1)}m, tti=${t.tti.toFixed(2)}s`);
+        } else if (t.type === 'aiming') {
+          console.log(`[AI] ${this.id} aiming threat: dist=${t.dist.toFixed(1)}m, tti=${t.tti.toFixed(2)}s`);
+        }
+      }
+      return true;
+    }
+    // Threat memory: stay alert after threats disappear
+    if (this._threatMemoryTimer > 0) {
+      if (window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} threat memory active (${this._threatMemoryTimer.toFixed(2)}s left)`);
+      }
+      return true;
+    }
+
     return false;
   }
 
+  /**
+   * Initiates an evasion maneuver based on the highest priority threat.
+   * Sets evasionActive to true, determines the best maneuver, and triggers it.
+   * Side Effects: Sets currentEvasionManeuver, evasionTimer, may deploy countermeasures.
+   */
   startEvasionManeuver() {
     this.evasionActive = true;
     // Optionally trigger a roll or random direction
@@ -676,6 +763,11 @@ export default class EnemyAircraft extends Aircraft {
 
   // --- Evasive Maneuver Library ---
 
+/**
+ * Performs a Flat Scissors maneuver (horizontal weaving turns).
+ * @param {number} [direction=1] - Initial turn direction (1 for right, -1 for left).
+ * Side Effects: Applies yaw, roll, pitch, thrust; shows maneuver label in debug.
+ */
 performFlatScissors(direction = 1) {
   // Alternating hard yaw/roll, low speed, horizontal plane
   for (let i = 0; i < 2; i++) {
@@ -695,6 +787,10 @@ performFlatScissors(direction = 1) {
   }
 }
 
+/**
+ * Performs a Cobra maneuver (sudden high-angle pitch-up to bleed speed).
+ * Side Effects: Applies pitch, thrust; may show maneuver label in debug.
+ */
 performCobraManeuver() {
   // Sudden pitch-up, then recover
   if (!this._canPerformNegativePitchManeuver(30)) {
@@ -713,6 +809,11 @@ performCobraManeuver() {
   }
 }
 
+/**
+ * Performs a Lag Displacement Roll (rolls out of plane to change pursuit geometry).
+ * @param {number} [direction=1] - Roll direction (1 for right, -1 for left).
+ * Side Effects: Applies roll, yaw, pitch, thrust; shows maneuver label in debug.
+ */
 performLagDisplacementRoll(direction = 1) {
   // Roll and yaw away, then pitch back in
   this.applyRoll(direction * 1.1 + (Math.random() - 0.5) * 0.2);
@@ -731,6 +832,11 @@ performLagDisplacementRoll(direction = 1) {
   }
 }
 
+/**
+ * Performs a Defensive Spiral (descending spiral to evade and bleed energy).
+ * @param {number} [direction=1] - Spiral direction (1 for right, -1 for left).
+ * Side Effects: Applies roll, yaw, pitch, thrust; shows maneuver label in debug.
+ */
 performDefensiveSpiral(direction = 1) {
   // Descending spiral, continuous roll, negative pitch, yaw
   if (!this._canPerformNegativePitchManeuver()) {
@@ -754,6 +860,11 @@ performDefensiveSpiral(direction = 1) {
   }
 }
 
+/**
+ * Performs a Pitchback Turn (sharp vertical turn to reverse direction).
+ * @param {number} [direction=1] - Turn direction (1 for right, -1 for left).
+ * Side Effects: Applies pitch, roll, yaw, thrust; shows maneuver label in debug.
+ */
 performPitchbackTurn(direction = 1) {
   // Rapid pitch-up, then roll/yaw to reverse
   if (!this._canPerformNegativePitchManeuver(40)) {
@@ -774,6 +885,11 @@ performPitchbackTurn(direction = 1) {
   }
 }
 
+/**
+ * Performs a Low Yo-Yo maneuver (dives below turn circle to decrease range).
+ * @param {number} [direction=1] - Turn direction (1 for right, -1 for left).
+ * Side Effects: Applies pitch, roll, yaw, thrust; shows maneuver label in debug.
+ */
 performLowYoYo(direction = 1) {
   // Descend and then pull up, reducing closure and repositioning
   let pitch = -0.28 + (Math.random() - 0.5) * 0.07;
@@ -793,6 +909,11 @@ performLowYoYo(direction = 1) {
   }
 }
 
+/**
+ * Performs a High Yo-Yo maneuver (climbs above turn circle to manage closure).
+ * @param {number} [direction=1] - Turn direction (1 for right, -1 for left).
+ * Side Effects: Applies pitch, roll, yaw, thrust; shows maneuver label in debug.
+ */
 performHighYoYo(direction = 1) {
   // Pull up and roll over, then descend back, reducing closure and repositioning
   this.applyPitch(0.32 + (Math.random() - 0.5) * 0.07);
@@ -805,6 +926,11 @@ performHighYoYo(direction = 1) {
   }
 }
 
+/**
+ * Performs Rolling Scissors (alternating rolls to force overshoot in close dogfight).
+ * @param {number} [direction=1] - Initial roll direction (1 for right, -1 for left).
+ * Side Effects: Applies roll, yaw, pitch, thrust; shows maneuver label in debug.
+ */
 performRollingScissors(direction = 1) {
   // Alternating roll and yaw, simulating a rolling scissors
   for (let i = 0; i < 2; i++) {
@@ -824,6 +950,11 @@ performRollingScissors(direction = 1) {
   }
 }
 
+/**
+ * Performs a Break Turn (maximum G turn away from threat).
+ * @param {number} [direction=1] - Turn direction (1 for right, -1 for left).
+ * Side Effects: Applies yaw, roll, thrust; shows maneuver label in debug.
+ */
 performBreakTurn(direction = 1) {
   this.applyYaw(direction * 0.32 + (Math.random() - 0.5) * 0.08);
   this.applyRoll(direction * 0.6 + (Math.random() - 0.5) * 0.1);
@@ -834,6 +965,10 @@ performBreakTurn(direction = 1) {
   }
 }
 
+/**
+ * Performs a Split-S maneuver (half-roll and descending half-loop to reverse direction).
+ * Side Effects: Applies pitch, roll, thrust; shows maneuver label in debug.
+ */
 performSplitS() {
   // Terrain-aware: check altitude before negative pitch
   if (!this._canPerformNegativePitchManeuver()) {
@@ -854,6 +989,11 @@ performSplitS() {
   }
 }
 
+/**
+ * Performs a Barrel Roll (360-degree roll while maintaining heading).
+ * @param {number} [direction=1] - Roll direction (1 for right, -1 for left).
+ * Side Effects: Applies roll, pitch, thrust; shows maneuver label in debug.
+ */
 performBarrelRoll(direction = 1) {
   this.applyRoll(direction * 1.0 + (Math.random() - 0.5) * 0.2);
   this.applyPitch(0.18 + (Math.random() - 0.5) * 0.05);
@@ -864,6 +1004,11 @@ performBarrelRoll(direction = 1) {
   }
 }
 
+/**
+ * Performs an Immelmann turn (half-loop up and half-roll to reverse direction and gain altitude).
+ * @param {number} [direction=1] - Roll direction after loop (1 for right, -1 for left).
+ * Side Effects: Applies pitch, roll, thrust; shows maneuver label in debug.
+ */
 performImmelmann(direction = 1) {
   this.applyPitch(0.55 + (Math.random() - 0.5) * 0.06);
   this.applyRoll(direction * 0.5 + (Math.random() - 0.5) * 0.1);
@@ -944,40 +1089,26 @@ updateEvasion(dt, evasionConfig = {}) {
     }
   }
 
+  // --- Threat ranking integration ---
   let threatType = null;
   let threatGuidance = null;
   let threatObj = null;
-  if (this.isUnderAttack && this.isUnderAttack()) {
-    if (typeof window !== 'undefined' && window.sceneProjectiles) {
-      for (const proj of window.sceneProjectiles) {
-        if (proj && proj.type === 'missile' && proj.target === this && proj.locked) {
-          threatType = 'missile_lock';
-          threatGuidance = proj.guidanceType || null;
-          threatObj = proj;
-          break;
-        }
-        if (proj && proj.type === 'missile' && proj.position && proj.direction) {
-          const toAI = this.position.clone().sub(proj.position);
-          if (toAI.length() < 400 && toAI.normalize().dot(proj.direction) > 0.85) {
-            threatType = 'missile_near';
-            threatGuidance = proj.guidanceType || null;
-            threatObj = proj;
-            break;
-          }
-        }
-        if ((proj.type === 'bullet' || proj.type === 'shell') && proj.position && proj.direction) {
-          const toAI = this.position.clone().sub(proj.position);
-          if (toAI.length() < 150 && toAI.normalize().dot(proj.direction) > 0.9) {
-            threatType = 'gunfire';
-            threatObj = proj;
-            break;
-          }
-        }
-      }
+  let threatTTI = null;
+  const rankedThreats = this.getThreatSummary();
+  if (rankedThreats.length > 0) {
+    const topThreat = rankedThreats[0];
+    threatType = topThreat.type;
+    threatObj = topThreat.obj;
+    threatTTI = topThreat.tti;
+    if (topThreat.type === 'missile' && topThreat.obj && topThreat.obj.guidanceType) {
+      threatGuidance = topThreat.obj.guidanceType;
+    }
+    if (window.DEBUG_AI_STATE) {
+      console.log(`[AI] ${this.id} evasion: top threat=${threatType}, tti=${threatTTI !== null ? threatTTI.toFixed(2) : 'n/a'}s`);
     }
   }
   // Select maneuver based on threat
-  if (threatType === 'missile_lock' || threatType === 'missile_near') {
+  if (threatType === 'missile') {
     // Missile: select from break turn, split-S, barrel roll, Immelmann, vertical scissors, low yo-yo, high yo-yo, rolling scissors
     const maneuvers = [
       () => this.performBreakTurn(Math.random() < 0.5 ? 1 : -1),
@@ -1056,6 +1187,10 @@ updateEvasion(dt, evasionConfig = {}) {
 
 
 
+  /**
+   * Ends the current evasion maneuver and resets related state.
+   * Side Effects: Sets evasionActive = false, hides debug label.
+   */
   endEvasionManeuver() {
     this.evasionActive = false;
     this._hideManeuverLabel && this._hideManeuverLabel();
