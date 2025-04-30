@@ -271,12 +271,39 @@ export default class EnemyAircraft extends Aircraft {
       : new THREE.Vector3();
   }
 
+  /**
+   * Generalized: Can fire at arbitrary target (player or AI)
+   * @param {object} target - Target object with .position and .velocity
+   * @returns {boolean}
+   */
+  canFireAtTarget(target) {
+    if (!target || !target.position) return false;
+    // Use equipped weapon or fallback
+    let projectileSpeed = 600;
+    const weapon = this.equippedWeapon || (this.weapons && this.weapons[0]);
+    if (weapon && weapon.projectileType && weapon.projectileType.speed) {
+      projectileSpeed = weapon.projectileType.speed;
+    } else if (weapon && weapon.speed) {
+      projectileSpeed = weapon.speed;
+    }
+    // Predict intercept
+    const targetPos = target.position.clone();
+    const targetVel = target.velocity ? target.velocity.clone() : new THREE.Vector3();
+    const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
+    // Select weapon for this intercept
+    if (!this.selectWeaponForTarget(intercept)) return false;
+    // Check constraints for selected weapon
+    const selectedWeapon = this.weapons[this.currentWeaponIndex];
+    if (!selectedWeapon) return false;
+    // Cooldown, ammo, angle, range, lock, arming handled by selectWeaponForTarget
+    // Additional: check if target is in LOS
+    if (this.canDetectTarget && !this.canDetectTarget(target)) return false;
+    return true;
+  }
+
+  // Legacy wrapper for player
   canFireAtPlayer() {
-    // Placeholder: fire if within 1200m and generally facing player
-    if (!this.canSeePlayer()) return false;
-    const toPlayer = this.getPlayerPosition().sub(this.position).normalize();
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
-    return this.distanceToPlayer() < 1200 && forward.dot(toPlayer) > 0.85;
+    return this.canFireAtTarget(window.playerAircraft);
   }
 
   /**
@@ -380,10 +407,12 @@ export default class EnemyAircraft extends Aircraft {
     return false;
   }
 
-  fireWeaponAtPlayer() {
-    // Predictive targeting: aim at intercept point
-    const player = window.playerAircraft;
-    if (!player) return;
+  /**
+   * Generalized: Fire at arbitrary target (player or AI)
+   * @param {object} target - Target object with .position and .velocity
+   */
+  fireWeaponAtTarget(target) {
+    if (!target || !target.position) return;
     // Use currently equipped weapon or fallback for projectile speed
     let projectileSpeed = 600;
     if (this.equippedWeapon && this.equippedWeapon.projectileType && this.equippedWeapon.projectileType.speed) {
@@ -391,8 +420,8 @@ export default class EnemyAircraft extends Aircraft {
     } else if (this.equippedWeapon && this.equippedWeapon.speed) {
       projectileSpeed = this.equippedWeapon.speed;
     }
-    const targetPos = player.position.clone();
-    const targetVel = player.velocity ? player.velocity.clone() : new THREE.Vector3();
+    const targetPos = target.position.clone();
+    const targetVel = target.velocity ? target.velocity.clone() : new THREE.Vector3();
     const intercept = this.computeInterceptPoint(targetPos, targetVel, projectileSpeed);
     // Select best weapon for this intercept
     if (!this.selectWeaponForTarget(intercept)) return; // No valid weapon
@@ -420,7 +449,7 @@ export default class EnemyAircraft extends Aircraft {
       return;
     }
     // Missile lock
-    if (weapon && weapon.requiresLock && typeof weapon.hasLock === 'function' && !weapon.hasLock(this.currentTarget)) {
+    if (weapon && weapon.requiresLock && typeof weapon.hasLock === 'function' && !weapon.hasLock(target)) {
       if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
         console.log(`[AI] ${this.id} cannot fire: missile lock not acquired.`);
       }
@@ -434,6 +463,11 @@ export default class EnemyAircraft extends Aircraft {
       return;
     }
     this.fireWeapon();
+  }
+
+  // Legacy wrapper for player
+  fireWeaponAtPlayer() {
+    this.fireWeaponAtTarget(window.playerAircraft);
   }
 
   isUnderAttack() {
