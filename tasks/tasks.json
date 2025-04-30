@@ -491,7 +491,7 @@
       "id": 8,
       "title": "Develop basic enemy AI for dogfights",
       "description": "Create AI-controlled enemy aircraft with basic dogfighting capabilities.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         7
       ],
@@ -511,7 +511,7 @@
           "id": 2,
           "title": "Develop patrol behavior and navigation system",
           "description": "Implement the patrol state behavior including waypoint following and basic navigation for AI aircraft",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -532,7 +532,7 @@
           "id": 4,
           "title": "Develop target tracking and weapon systems",
           "description": "Create the AI's ability to track targets and use weapons effectively during engagement",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             3
           ],
@@ -542,7 +542,7 @@
           "id": 5,
           "title": "Implement evasive maneuvers and defensive behavior",
           "description": "Create the evade state behavior with various defensive maneuvers when AI aircraft are under attack",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2
@@ -553,7 +553,7 @@
           "id": 6,
           "title": "Develop formation flying capabilities",
           "description": "Implement the ability for multiple AI aircraft to fly in coordinated formations",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             2
           ],
@@ -563,7 +563,7 @@
           "id": 7,
           "title": "Implement difficulty scaling and performance balancing",
           "description": "Create a comprehensive difficulty system that adjusts AI capabilities across all behaviors",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2,
