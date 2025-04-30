@@ -495,7 +495,48 @@ export default class EnemyAircraft extends Aircraft {
 
   startEvasionManeuver() {
     this.evasionActive = true;
-    // Optionally trigger a roll or random direction
+    this._evasionStartTime = performance.now();
+  }
+
+  // --- Evasive Maneuver Library ---
+  barrelRoll() {
+    this.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.9); // full roll
+    this.applyThrust(this.maxAccel * 0.8);
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      console.log(`[AI] ${this.id} performs BARREL ROLL`);
+    }
+  }
+  splitS() {
+    this.applyPitch(-0.5); // hard pitch down
+    this.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.6);
+    this.applyThrust(this.maxAccel);
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      console.log(`[AI] ${this.id} performs SPLIT-S`);
+    }
+  }
+  dive() {
+    this.applyPitch(-0.7);
+    this.applyThrust(this.maxAccel);
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      console.log(`[AI] ${this.id} performs DIVE`);
+    }
+  }
+  hardTurn(direction) {
+    this.applyYaw(direction * 0.35);
+    this.applyRoll(direction * 0.45);
+    this.applyThrust(this.maxAccel);
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      console.log(`[AI] ${this.id} performs HARD TURN (${direction > 0 ? 'RIGHT' : 'LEFT'})`);
+    }
+  }
+  randomJink() {
+    this.applyRoll((Math.random() - 0.5) * 0.6);
+    this.applyYaw((Math.random() - 0.5) * 0.4);
+    this.applyPitch((Math.random() - 0.5) * 0.3);
+    this.applyThrust(this.maxAccel * 0.8);
+    if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+      console.log(`[AI] ${this.id} performs RANDOM JINK`);
+    }
   }
 
   updateEvasion(dt) {
@@ -559,6 +600,26 @@ export default class EnemyAircraft extends Aircraft {
       if (rand < 0.66) this.applyYaw((Math.random() - 0.5) * 0.12);
       if (rand > 0.66) this.applyPitch((Math.random() - 0.5) * 0.12);
       this.applyThrust(12000);
+    }
+    // Terrain-aware evasion
+    if (this.position.y < 100) {
+      this.applyPitch(0.2); // gentle climb
+    } else if (this.position.y > 500) {
+      this.applyPitch(-0.2); // gentle dive
+    }
+    // Scale evasion aggressiveness and countermeasure timing with aimError (difficulty)
+    const aimError = this.aimError !== undefined ? this.aimError : 0.05;
+    if (aimError > 0.1) {
+      this.applyThrust(this.maxAccel * 1.2);
+    } else if (aimError < 0.05) {
+      this.applyThrust(this.maxAccel * 0.8);
+    }
+    if (this.deployCountermeasure && (!this._lastCM || (performance.now() - this._lastCM) > 600)) {
+      this.deployCountermeasure('flare');
+      this._lastCM = performance.now();
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} deployed flare!`);
+      }
     }
   }
 
