@@ -143,17 +143,48 @@ export function createEnemyAIStates(enemy, config = {}) {
       onEnter() {
         enemy.stateDebug = 'evade';
         enemy.startEvasionManeuver();
+        enemy._evasionStartTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
       },
       onUpdate(dt) {
         // Perform evasive maneuver
         enemy.updateEvasion(dt);
-        // Return to engage if safe
-        if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > (config.evadeDistance || 300)) {
+        // Recovery/re-engagement logic: Only return to engage if safe and minimum evasion time elapsed
+        // --- TUNABLE: Minimum evasion duration and safe distance scale with difficulty ---
+        // Lower aimError = harder AI = shorter evasion, closer re-engage
+        const aimError = enemy.aimError !== undefined ? enemy.aimError : 0.05;
+        const minDurationBase = (config.evadeMinDurationBase !== undefined) ? config.evadeMinDurationBase : 1.0;
+        const minDurationScale = (config.evadeMinDurationScale !== undefined) ? config.evadeMinDurationScale : 2.5;
+        const minEvasionDuration = minDurationBase + aimError * minDurationScale; // e.g. 1.0s (ace) to 3.5s (rookie)
+        const safeDistBase = (config.evadeSafeDistBase !== undefined) ? config.evadeSafeDistBase : 180;
+        const safeDistScale = (config.evadeSafeDistScale !== undefined) ? config.evadeSafeDistScale : 500;
+        const safeDistance = safeDistBase + aimError * safeDistScale; // e.g. 180m (ace) to 680m (rookie)
+        const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        const evasionTime = enemy._evasionStartTime ? (now - enemy._evasionStartTime) / 1000 : 0;
+        // Optionally, check for safe distance from all threats (player and projectiles)
+        let safeFromThreats = true;
+        if (typeof window !== 'undefined' && window.sceneProjectiles) {
+          for (const proj of window.sceneProjectiles) {
+            if (proj && proj.target === enemy && proj.type === 'missile' && proj.locked) {
+              safeFromThreats = false;
+              break;
+            }
+          }
+        }
+        if (!enemy.isUnderAttack() && enemy.distanceToPlayer() > safeDistance && evasionTime > minEvasionDuration && safeFromThreats) {
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} completed evasion, re-engaging after ${evasionTime.toFixed(2)}s (min: ${minEvasionDuration.toFixed(2)}s, safeDist: ${safeDistance.toFixed(0)}m, aimError: ${aimError})`);
+          }
+          enemy.stateMachine.transition('engage');
+        }
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} completed evasion, re-engaging after ${evasionTime.toFixed(2)}s`);
+          }
           enemy.stateMachine.transition('engage');
         }
       },
       onExit() {
         enemy.endEvasionManeuver();
+        delete enemy._evasionStartTime;
       }
     }
   };
