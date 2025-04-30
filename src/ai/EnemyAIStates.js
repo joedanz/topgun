@@ -2,9 +2,25 @@
 // Defines the state logic for enemy AI (patrol, engage, evade)
 import * as THREE from 'three';
 
+/**
+ * Factory function to create enemy AI state objects (patrol, engage, evade) with logic for each state.
+ * @param {EnemyAircraft} enemy - The AI-controlled enemy aircraft instance.
+ * @param {object} [config={}] - AI configuration options for patrol, engagement, and evasion.
+ * @returns {object} State definitions for use with a StateMachine.
+ */
 export function createEnemyAIStates(enemy, config = {}) {
   return {
     patrol: {
+      /**
+       * Called when entering the patrol state.
+       * Sets up patrol route and resets waypoint index.
+       * Side Effects: Modifies enemy state, route, and debug state.
+       */
+  /**
+   * Called when entering the patrol state.
+   * Sets up patrol route and resets waypoint index.
+   * Side Effects: Modifies enemy state, route, and debug state.
+   */
       onEnter() {
         // Assign a patrol route with randomization/perturbation for unpredictability
         enemy.setPatrolRoute(
@@ -81,6 +97,12 @@ export function createEnemyAIStates(enemy, config = {}) {
       }
     },
     engage: {
+      /**
+       * Called when entering the engage state.
+       * Acquires a target and resets lost target timer.
+       * @param {object} [gameContext={}] - Optional context with targets array.
+       * Side Effects: Sets debug state, resets timers.
+       */
       onEnter(gameContext = {}) {
         enemy.acquireTarget(gameContext && gameContext.targets ? gameContext.targets : [window.playerAircraft]);
         enemy.stateDebug = 'engage';
@@ -89,6 +111,13 @@ export function createEnemyAIStates(enemy, config = {}) {
           console.log(`[AI] ${enemy.id} entering ENGAGE state`);
         }
       },
+      /**
+       * Called every frame in engage state.
+       * Handles dynamic target acquisition, pursuit, and checks for loss of target or threats.
+       * Transitions to patrol or evade as appropriate.
+       * @param {number} dt - Delta time in seconds.
+       * @param {object} [gameContext={}] - Optional context with targets array.
+       */
       onUpdate(dt, gameContext = {}) {
         // Always re-acquire best target each frame for dynamic prioritization
         const targets = gameContext.targets || [window.playerAircraft];
@@ -134,9 +163,23 @@ export function createEnemyAIStates(enemy, config = {}) {
           }
         }
       },
+      /**
+       * Called when exiting the engage state.
+       * Side Effects: Resets lost target timer.
+       */
       onExit() { enemy.lostTargetTimer = 0; }
     },
     evade: {
+      /**
+       * Called when entering the evade state.
+       * Sets evasion parameters based on difficulty, triggers evasion maneuver, and resets timers.
+       * Side Effects: Modifies enemy evasion aggression, timers, and debug state.
+       */
+  /**
+   * Called when entering the evade state.
+   * Sets evasion parameters based on difficulty, triggers evasion maneuver, and resets timers.
+   * Side Effects: Modifies enemy evasion aggression, timers, and debug state.
+   */
       onEnter() {
         // --- Difficulty scaling for evasion ---
         // Use config.difficulty if present (easy, medium, hard)
