@@ -501,7 +501,14 @@ export default class EnemyAircraft extends Aircraft {
     const errorDir = aimError > 0 ? this.randomDirectionWithinCone(toIntercept, aimError) : toIntercept;
     const interceptWithError = this.position.clone().add(errorDir.multiplyScalar(newIntercept.clone().sub(this.position).length()));
     this.setLockedTarget(interceptWithError);
-    // Enforce dynamic constraints before firing
+
+    // --- ENHANCED CONSTRAINTS ---
+    // Range check
+    const dist = newIntercept.clone().sub(this.position).length();
+    if (typeof weapon.range === 'number' && dist > weapon.range) return;
+    if (typeof weapon.minRange === 'number' && dist < weapon.minRange) return;
+    // Ammo check
+    if (typeof weapon.ammoCount === 'number' && weapon.ammoCount <= 0) return;
     // Cooldown check (canFire or isReady)
     if (weapon && ((typeof weapon.canFire === 'function' && !weapon.canFire()) || (typeof weapon.isReady === 'function' && !weapon.isReady()) || (typeof weapon.ready === 'boolean' && !weapon.ready))) {
       if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
@@ -523,7 +530,32 @@ export default class EnemyAircraft extends Aircraft {
       }
       return;
     }
+    // --- HIT PROBABILITY THRESHOLD ---
+    // Estimate hit probability based on aim error and difficulty
+    let hitProbability = 1.0;
+    if (typeof this.predictionAccuracy === 'number') {
+      // Simple model: lower accuracy reduces hit probability
+      hitProbability = this.predictionAccuracy;
+    } else if (typeof aimError === 'number') {
+      // Higher aim error = lower probability (roughly mapped)
+      hitProbability = Math.max(0, 1.0 - (aimError / 0.3));
+    }
+    const minHitProbability = (typeof this.minHitProbability === 'number') ? this.minHitProbability : 0.45; // can be scaled by difficulty
+    if (hitProbability < minHitProbability) {
+      if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+        console.log(`[AI] ${this.id} will not fire: hit probability too low (${hitProbability.toFixed(2)}).`);
+      }
+      return;
+    }
+    // --- FIRE! ---
     this.fireWeapon();
+    // --- UPDATE AMMO/COOLDOWN (if not handled by weapon itself) ---
+    if (typeof weapon.ammoCount === 'number') {
+      weapon.ammoCount = Math.max(0, weapon.ammoCount - 1);
+    }
+    if (typeof weapon.triggerCooldown === 'function') {
+      weapon.triggerCooldown();
+    }
   }
 
   isUnderAttack() {
