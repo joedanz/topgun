@@ -90,8 +90,9 @@ export function createEnemyAIStates(enemy, config = {}) {
         }
       },
       onUpdate(dt, gameContext = {}) {
-        // Re-acquire or lose target logic
+        // Always re-acquire best target each frame for dynamic prioritization
         const targets = gameContext.targets || [window.playerAircraft];
+        enemy.acquireTarget(targets);
         if (!enemy.currentTarget || !enemy.canDetectTarget(enemy.currentTarget)) {
           enemy.lostTargetTimer = (enemy.lostTargetTimer || 0) + dt;
           if (enemy.lostTargetTimer > 0.5) {
@@ -101,22 +102,26 @@ export function createEnemyAIStates(enemy, config = {}) {
             enemy.stateMachine.transition('patrol');
             return;
           }
-          // Optionally, try to acquire a new target
-          enemy.acquireTarget(targets);
         } else {
           enemy.lostTargetTimer = 0;
-          // Engage logic: steer toward, fire if in range/angle, etc.
-          enemy.steerTowards(enemy.currentTarget.position, dt, true);
-          if (enemy.canFireAtPlayer && enemy.canFireAtPlayer()) {
-            enemy.fireWeaponAtPlayer();
+          // --- Tactical engagement logic ---
+          const tactical = enemy.assessTacticalSituation ? enemy.assessTacticalSituation() : { canAttack: false };
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} tactical:`, tactical);
+          }
+          // Steer toward target (with aggression if needsManeuver)
+          enemy.steerTowards(enemy.currentTarget.position, dt, tactical.needsManeuver);
+          // Fire if in good attack position
+          if (tactical.canAttack && enemy.canFireAtTarget && enemy.canFireAtTarget()) {
+            enemy.fireWeaponAtTarget();
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
               console.log(`[AI] ${enemy.id} firing at target ${enemy.currentTarget.id || '[unknown]'}`);
             }
           }
-          // Tactical: evade if under attack or too close
-          if (enemy.isUnderAttack && (enemy.isUnderAttack() || enemy.distanceToPlayer() < (config.evadeDistance || 300))) {
+          // Tactical: evade if under attack or at a disadvantage
+          if (enemy.isUnderAttack && enemy.isUnderAttack()) {
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} switching to EVADE`);
+              console.log(`[AI] ${enemy.id} switching to EVADE (under attack)`);
             }
             enemy.stateMachine.transition('evade');
           }

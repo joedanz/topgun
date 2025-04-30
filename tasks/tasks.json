@@ -521,7 +521,7 @@
           "id": 3,
           "title": "Implement target detection and engagement logic",
           "description": "Create systems for AI aircraft to detect player aircraft and transition to engagement behavior",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2

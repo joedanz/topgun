@@ -134,6 +134,14 @@ export default class EnemyAircraft extends Aircraft {
     return this.canDetectTarget(window.playerAircraft);
   }
 
+  /**
+   * Determines if the enemy can detect a given target based on distance, FOV, and optional line-of-sight (LOS) check.
+   * @param {object} target - The target object (must have .position: THREE.Vector3)
+   * @returns {boolean} True if target is detectable
+   *
+   * If this.sceneObstacles or window.sceneObstacles is defined as an array of THREE.Mesh or objects with geometry,
+   * performs a raycast to ensure LOS is not blocked by obstacles (e.g., terrain, buildings).
+   */
   canDetectTarget(target) {
     if (!target || !target.position) return false;
     const toTarget = target.position.clone().sub(this.position);
@@ -142,19 +150,52 @@ export default class EnemyAircraft extends Aircraft {
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
     const dirToTarget = toTarget.clone().normalize();
     const angle = Math.acos(forward.dot(dirToTarget));
-    return angle < this.fieldOfView / 2;
+    if (angle >= this.fieldOfView / 2) return false;
+
+    // --- Optional: Line-of-sight (LOS) check using THREE.Raycaster ---
+    let obstacles = this.sceneObstacles || (typeof window !== 'undefined' ? window.sceneObstacles : null);
+    if (Array.isArray(obstacles) && obstacles.length > 0 && typeof THREE.Raycaster !== 'undefined') {
+      const raycaster = new THREE.Raycaster(this.position, dirToTarget, 0.1, dist - 5); // 5m buffer
+      const intersects = raycaster.intersectObjects(obstacles, true);
+      if (intersects && intersects.length > 0) {
+        // If the closest intersection is before the target, LOS is blocked
+        if (intersects[0].distance < dist - 5) return false;
+      }
+    }
+    return true;
   }
 
+  /**
+   * Selects the best target from a list using prioritization logic.
+   * Prioritizes by: (1) player aircraft (if present), (2) angle to forward, (3) distance.
+   * Extend as needed for health, threat, etc.
+   * @param {Array} targets - Array of possible target aircraft
+   * @returns {object|null} The selected target
+   */
   acquireTarget(targets) {
     let best = null, bestScore = Infinity;
     if (!targets || !Array.isArray(targets)) return null;
     for (const t of targets) {
-      if (this.canDetectTarget(t)) {
-        const d = this.position.distanceTo(t.position);
-        if (d < bestScore) {
-          best = t;
-          bestScore = d;
-        }
+      if (!this.canDetectTarget(t)) continue;
+      // --- Prioritization factors ---
+      let score = 0;
+      // Prefer player if present
+      if (t.isPlayer || t === window.playerAircraft) score -= 1000;
+      // Angle to forward (smaller angle = better)
+      const toTarget = t.position.clone().sub(this.position).normalize();
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
+      const angle = Math.acos(Math.max(-1, Math.min(1, forward.dot(toTarget))));
+      score += angle * 100; // 0 (ahead) to ~314 (behind)
+      // Distance (closer = better)
+      const dist = this.position.distanceTo(t.position);
+      score += dist;
+      // Optionally: lower health targets
+      if (typeof t.health === 'number') score -= t.health * 0.5;
+      // Optionally: prioritize locked-on or attacking targets
+      // Extend here as needed
+      if (score < bestScore) {
+        best = t;
+        bestScore = score;
       }
     }
     this.currentTarget = best;
@@ -166,6 +207,37 @@ export default class EnemyAircraft extends Aircraft {
       }
     }
     return best;
+  }
+
+  /**
+   * Tactical engagement decision helper.
+   * Returns an object describing the tactical situation for the current target.
+   * Use in engage state to decide whether to attack, maneuver, or evade.
+   */
+  assessTacticalSituation() {
+    if (!this.currentTarget || !this.currentTarget.position) return { canAttack: false };
+    const toTarget = this.currentTarget.position.clone().sub(this.position);
+    const dist = toTarget.length();
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rotation).normalize();
+    const dirToTarget = toTarget.clone().normalize();
+    const angle = Math.acos(Math.max(-1, Math.min(1, forward.dot(dirToTarget))));
+
+    // Tactical rules (adjust as needed)
+    const canAttack = (dist < this.detectionRange * 0.7) && (angle < this.fieldOfView * 0.35);
+    const needsManeuver = !canAttack && (angle < this.fieldOfView / 2);
+    const isBehindTarget = (() => {
+      if (!this.currentTarget.rotation) return false;
+      const targetForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.currentTarget.rotation).normalize();
+      const dot = dirToTarget.dot(targetForward);
+      return dot > 0.5; // >0 = behind, 1 = directly behind
+    })();
+    return {
+      canAttack,
+      needsManeuver,
+      isBehindTarget,
+      dist,
+      angle,
+    };
   }
 
   updateDetection(dt) {

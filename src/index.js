@@ -23,6 +23,29 @@ const threeEnv = new ThreeEnvironment(appDiv);
 // Expose the Three.js scene globally so enemies can be added from console
 window.scene = threeEnv.scene;
 
+// --- AI Line-of-Sight Obstacle Setup ---
+// Collect terrain and static obstacle meshes for AI LOS checks.
+// Replace or expand this logic as needed for your project.
+(function setupSceneObstacles() {
+  // Example: If you have a terrain mesh and array of static obstacles globally
+  let obstacles = [];
+  if (typeof terrainMesh !== 'undefined') obstacles.push(terrainMesh);
+  if (typeof staticObstacles !== 'undefined' && Array.isArray(staticObstacles)) obstacles.push(...staticObstacles);
+
+  // Fallback: Find meshes in the scene with a name/tag indicating 'terrain' or 'obstacle'
+  if (obstacles.length === 0 && window.scene) {
+    window.scene.traverse(obj => {
+      if (obj.isMesh && (obj.name?.toLowerCase().includes('terrain') || obj.name?.toLowerCase().includes('obstacle'))) {
+        obstacles.push(obj);
+      }
+    });
+  }
+
+  // Assign to global for AI
+  window.sceneObstacles = obstacles;
+  // You can push more meshes to window.sceneObstacles as needed after loading assets
+})();
+
 // Mount HUD overlay
 const hudDiv = document.createElement('div');
 hudDiv.id = 'hud-root';

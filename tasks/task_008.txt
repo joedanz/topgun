@@ -23,7 +23,7 @@ Design and implement a flexible state machine class that handles state transitio
 ### Details:
 Create a waypoint system that allows defining patrol routes. Implement smooth interpolation between waypoints with proper banking and altitude adjustments. Add randomization options to patrol patterns to increase unpredictability. Develop collision avoidance with terrain and other aircraft. Include performance limitations like turn radius, acceleration and speed constraints that match player aircraft capabilities.
 
-## 3. Implement target detection and engagement logic [pending]
+## 3. Implement target detection and engagement logic [done]
 ### Dependencies: 8.1, 8.2
 ### Description: Create systems for AI aircraft to detect player aircraft and transition to engagement behavior
 ### Details:
