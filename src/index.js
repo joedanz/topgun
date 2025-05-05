@@ -71,35 +71,21 @@ function getHUDWeaponProps() {
   return { currentWeapon: null, weapons: [] };
 }
 
-function renderHUD() {
-  const { currentWeapon, weapons } = getHUDWeaponProps();
-  root.render(
-    <HUD
-      speed={window.playerAircraft?.speed || 420}
-      altitude={window.playerAircraft?.position?.y || 12000}
-      currentWeapon={currentWeapon}
-      weapons={weapons}
-      health={window.playerAircraft?.health ?? 87}
-    />
-  );
-}
-
-renderHUD();
-// Optionally, call renderHUD() in your game loop or after weapon changes to update HUD
-
+// HUD and Targeting overlays are now managed by OverlayRoot. Render OverlayRoot as main overlay.
+root.render(<OverlayRoot />);
 // --- Weapon Switching Input Integration ---
 if (window.inputHandler) {
   // Next/Prev weapon
   window.inputHandler.onInput('nextWeapon', (pressed) => {
     if (pressed && window.playerAircraft) {
       window.playerAircraft.switchWeapon(+1);
-      renderHUD();
+      // renderHUD() removed; OverlayRoot now manages HUD rendering.
     }
   });
   window.inputHandler.onInput('prevWeapon', (pressed) => {
     if (pressed && window.playerAircraft) {
       window.playerAircraft.switchWeapon(-1);
-      renderHUD();
+      // renderHUD() removed; OverlayRoot now manages HUD rendering.
     }
   });
   // Direct weapon selection (number keys)
@@ -107,7 +93,7 @@ if (window.inputHandler) {
     window.inputHandler.onInput(`selectWeapon${i}`, (pressed) => {
       if (pressed && window.playerAircraft) {
         window.playerAircraft.switchWeapon(i - 1);
-        renderHUD();
+        // renderHUD() removed; OverlayRoot now manages HUD rendering.
       }
     });
   }
@@ -126,17 +112,38 @@ let lastEnemies = [];
 
 // Utility: Get all valid enemy targets (real EnemyAircraft)
 function getEnemyTargets() {
-  if (!window.enemies) return [];
-  return window.enemies.map(e => ({
-    id: e.id,
-    screenX: e.screenX ?? 0,
-    screenY: e.screenY ?? 0,
-    distance: window.playerAircraft ? e.position.distanceTo(window.playerAircraft.position) : 0,
-    onScreen: true, // TODO: set by camera/frustum check
-    inRange: window.playerAircraft ? e.position.distanceTo(window.playerAircraft.position) < 1800 : false,
-    ref: e
-  }));
+  if (!window.enemies || !window.scene || !window.scene.camera) return [];
+  const camera = window.scene.camera;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  return window.enemies.map(e => {
+    // Project enemy position to normalized device coordinates
+    const pos = e.position.clone();
+    const vector = pos.project(camera); // .project mutates the vector
+    // Convert NDC to screen coordinates
+    const screenX = (vector.x * 0.5 + 0.5) * width;
+    const screenY = (1 - (vector.y * 0.5 + 0.5)) * height; // invert y for screen
+    // Check if on screen and in front of camera
+    const onScreen =
+      vector.z > 0 && vector.z < 1 &&
+      vector.x >= -1 && vector.x <= 1 &&
+      vector.y >= -1 && vector.y <= 1;
+    // Calculate distance
+    const distance = window.playerAircraft ? e.position.distanceTo(window.playerAircraft.position) : 0;
+    // In range logic (adjust threshold as needed)
+    const inRange = window.playerAircraft ? distance < 1800 : false;
+    return {
+      id: e.id,
+      screenX,
+      screenY,
+      distance,
+      onScreen,
+      inRange,
+      ref: e
+    };
+  });
 }
+
 
 // --- Enemy Spawning ---
 import EnemyAircraft from './aircraft/EnemyAircraft';
@@ -298,19 +305,7 @@ if (window.inputHandler) {
   });
 }
 
-// Mount TargetingSystem overlay (above HUD)
-const targetingDiv = document.createElement('div');
-targetingDiv.id = 'targeting-root';
-targetingDiv.style.position = 'fixed';
-targetingDiv.style.left = 0;
-targetingDiv.style.right = 0;
-targetingDiv.style.bottom = 0;
-targetingDiv.style.top = 0;
-targetingDiv.style.pointerEvents = 'none';
-targetingDiv.style.zIndex = 110;
-document.body.appendChild(targetingDiv);
-
-const targetingRoot = createRoot(targetingDiv);
+// (Removed targeting-root overlay; TargetingSystem is now part of OverlayRoot HUD tree)
 function TargetingDemo() {
   const [hit, setHit] = useState(false);
   const [tick, setTick] = useState(0);
@@ -506,7 +501,23 @@ function OverlayRoot() {
       {fovDebugs}
       <HitMarker trigger={hitMarkerTrigger} />
       <HUDOverlayEffects damageTrigger={damageFlash} onShake={handleShake} />
-      <TargetingDemo />
+      <TargetingSystem
+        enemies={enemies}
+        hoverTarget={false}
+        hitMarker={hitMarkerTrigger}
+        soundEnabled={true}
+        lockedTargetId={window.lockedTargetId}
+        lockStatus={window.lockStatus}
+        lockProgress={window.lockProgress}
+        onSetLockedTarget={id => { window.lockedTargetId = id; }}
+      />
+      <HUD
+        speed={window.playerAircraft?.speed || 420}
+        altitude={window.playerAircraft?.position?.y || 12000}
+        currentWeapon={window.playerAircraft?.getCurrentWeapon?.()}
+        weapons={window.playerAircraft?.weapons || []}
+        health={window.playerAircraft?.health ?? 87}
+      />
       <MissionObjectives
         objectives={[
           { id: 1, text: 'Destroy all enemy fighters', completed: false },
@@ -531,7 +542,7 @@ function OverlayRoot() {
   );
 }
 
-targetingRoot.render(<OverlayRoot />);
+// targetingRoot removed; OverlayRoot is now rendered via root.render(<OverlayRoot />);
 
 
 let lastFrameTime = performance.now();

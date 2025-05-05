@@ -123,6 +123,8 @@ function EnemyIndicator({ screenX, screenY, distance, inRange, locked, lockStatu
 
 
 function OffscreenArrow({ screenX, screenY, distance }) {
+  // Defensive: if distance is not a valid number, skip rendering
+  if (typeof distance !== 'number' || isNaN(distance)) return null;
   // Off-screen enemy: show an arrow at edge, wiggle animation
   return (
     <div className="offscreen-arrow wiggle-anim" style={{ left: screenX, top: screenY }}>
