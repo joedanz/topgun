@@ -140,7 +140,7 @@ export function createEnemyAIStates(enemy, config = {}) {
             }
           }
         }
-      }
+        // Set AI parameters for this engage state
         enemy.aimAccuracy = diff.aimAccuracy;
         enemy.maneuverAggression = diff.maneuverAggression;
         enemy.tacticalComplexity = diff.tacticalComplexity;
