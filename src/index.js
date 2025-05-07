@@ -17,6 +17,7 @@ import DebugMenu from './components/DebugMenu';
 import EnemyDebugLabel from './components/EnemyDebugLabel';
 import EnemyPatrolDebug from './components/EnemyPatrolDebug';
 import EnemyFOVDebug from './components/EnemyFOVDebug';
+import DDADebugPanel from './components/DDADebugPanel'; // DDA debug overlay
 import './components/PauseMenu.css';
 
 const appDiv = document.getElementById('app');
@@ -202,15 +203,11 @@ window.spawnEnemies = spawnEnemies;
 
 // Create player aircraft and expose it globally
 function createPlayerAircraft() {
-  const player = new Aircraft({
-    type: 'F/A-18',  // Player aircraft type
-    mass: 10500,     // Appropriate mass for player aircraft
-    position: new THREE.Vector3(0, 12000, 0),  // Starting position
-    rotation: new THREE.Quaternion(),
-    weapons: [
-      // Add default weapons here if needed
-    ],
-    health: 100
+  // Use PlayerAircraft so .mesh exists
+  const PlayerAircraft = require('./aircraft/PlayerAircraft').default;
+  const player = new PlayerAircraft({
+    position: new THREE.Vector3(0, 12000, 0),
+    velocity: new THREE.Vector3(0, 0, 0)
   });
   
   // Expose the player to the window for AI and debug scripts
@@ -218,7 +215,12 @@ function createPlayerAircraft() {
   
   // Add to the scene if needed
   if (window.scene) {
-    window.scene.add(player);
+    // Only add Object3D instances (player.mesh preferred)
+    if (player.mesh && player.mesh.isObject3D) {
+      window.scene.add(player.mesh);
+    } else {
+      console.error('Player aircraft .mesh is missing or not a THREE.Object3D:', player.mesh);
+    }
   }
   
   return player;
@@ -538,6 +540,8 @@ function OverlayRoot() {
         onQuit={() => { setPauseOpen(false); alert('Quit game!'); }}
       />
       {settingsOpen && <ControlSettingsWrapper onClose={() => setSettingsOpen(false)} />}
+      {/* DDA Debug Overlay (F5 to toggle) */}
+      <DDADebugPanel dda={window.DDA} />
     </>
   );
 }
