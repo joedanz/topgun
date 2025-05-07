@@ -1,6 +1,6 @@
 # Task ID: 8
 # Title: Develop basic enemy AI for dogfights
-# Status: in-progress
+# Status: done
 # Dependencies: 7
 # Priority: medium
 # Description: Create AI-controlled enemy aircraft with basic dogfighting capabilities.
@@ -29,13 +29,13 @@ Create a waypoint system that allows defining patrol routes. Implement smooth in
 ### Details:
 Implement sensor simulation with configurable detection range and field of view. Create target prioritization logic when multiple potential targets exist. Add reaction time delay based on difficulty level. Implement line-of-sight checks to ensure realistic detection. Develop engagement decision making based on relative position, distance, and tactical advantage. Create smooth transition from patrol to engage state when targets are detected.
 
-## 4. Develop target tracking and weapon systems [pending]
+## 4. Develop target tracking and weapon systems [done]
 ### Dependencies: 8.3
 ### Description: Create the AI's ability to track targets and use weapons effectively during engagement
 ### Details:
 Implement predictive targeting that accounts for target velocity and acceleration. Create weapon selection logic based on range and engagement angle. Add accuracy variation based on difficulty level. Implement realistic weapon constraints like minimum range, lock-on requirements, and ammunition limits. Create aiming behavior with appropriate lead calculation for different weapon types. Add cooldown periods between weapon uses.
 
-## 5. Implement evasive maneuvers and defensive behavior [pending]
+## 5. Implement evasive maneuvers and defensive behavior [done]
 ### Dependencies: 8.1, 8.2
 ### Description: Create the evade state behavior with various defensive maneuvers when AI aircraft are under attack
 ### Details:
@@ -47,7 +47,7 @@ Implement threat detection from incoming missiles or when taking damage. Create 
 ### Details:
 Create a formation manager that assigns relative positions to each aircraft in a group. Implement different formation types (V-formation, echelon, line abreast, etc.). Add dynamic spacing adjustment based on speed and maneuvers. Implement leader-follower hierarchy with role reassignment if the leader is destroyed. Create formation-wide tactical decision making for coordinated attacks and retreats. Add communication delay between formation members based on difficulty level.
 
-## 7. Implement difficulty scaling and performance balancing [pending]
+## 7. Implement difficulty scaling and performance balancing [done]
 ### Dependencies: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6
 ### Description: Create a comprehensive difficulty system that adjusts AI capabilities across all behaviors
 ### Details:
