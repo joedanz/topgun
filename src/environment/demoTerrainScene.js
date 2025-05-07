@@ -9,6 +9,8 @@ import TimeController from './TimeController';
 import StarField from './StarField';
 import CelestialBody from './CelestialBody';
 import Water from './Water';
+import ObjectPlacer from './ObjectPlacer';
+import { makeHeightLookup } from './TerrainUtils';
 
 export async function createDemoTerrainScene(renderer, scene, camera) {
   // --- Water Reflection Setup ---
@@ -71,6 +73,23 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
   window.water = water;
   // Set initial reflection texture
   water.setReflectionTexture(reflectionRenderTarget.texture);
+
+  // --- Environmental Objects & Vegetation ---
+  // Assume terrain mesh is the first visibleChunkMeshes[0] (for demo)
+  let terrainMesh = null;
+  if (visibleChunkMeshes && visibleChunkMeshes.length > 0) {
+    terrainMesh = visibleChunkMeshes[0];
+  }
+  // Provide a height lookup function for object placement
+  const terrainWidth = terrainSize;
+  const terrainHeight = terrainSize;
+  const maxElevation = 120;
+  const getHeightAt = makeHeightLookup(heights, terrainWidth, terrainHeight, maxElevation);
+  // Mock terrain object for ObjectPlacer
+  const terrainForPlacer = { width: terrainWidth, height: terrainHeight, getHeightAt };
+  const objectPlacer = new ObjectPlacer({ terrain: terrainForPlacer, scene });
+  objectPlacer.placeObjects();
+  window.objectPlacer = objectPlacer;
 
   // Star field (add behind skydome)
   const stars = new StarField();
@@ -225,6 +244,9 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
       sky.mesh.material.uniforms.bottomColor.value.copy(bottom);
     }
     sky.updatePosition(camera);
+
+    // Animate wind for trees
+    objectPlacer.animateWind(timeController.time);
 
     // --- Water Reflection Pass ---
     // Position mirror camera below water plane, flip Y
