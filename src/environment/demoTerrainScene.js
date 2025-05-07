@@ -11,6 +11,7 @@ import CelestialBody from './CelestialBody';
 import Water from './Water';
 import ObjectPlacer from './ObjectPlacer';
 import { makeHeightLookup } from './TerrainUtils';
+import FogController from './FogController';
 
 export async function createDemoTerrainScene(renderer, scene, camera) {
   // --- Water Reflection Setup ---
@@ -73,6 +74,15 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
   window.water = water;
   // Set initial reflection texture
   water.setReflectionTexture(reflectionRenderTarget.texture);
+
+  // --- Fog & Atmospheric Effects ---
+  const fogController = new FogController(scene, {
+    fogColor: 0xc8e0ff,
+    baseDensity: 0.003,
+    heightFalloff: 0.012,
+    maxDistance: 4000
+  });
+  window.fogController = fogController;
 
   // --- Environmental Objects & Vegetation ---
   // Assume terrain mesh is the first visibleChunkMeshes[0] (for demo)
@@ -244,6 +254,17 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
       sky.mesh.material.uniforms.bottomColor.value.copy(bottom);
     }
     sky.updatePosition(camera);
+
+    // Fog update
+    // Defensive: fallback if celestialBodies or sun is not defined
+    let sunset = false;
+    try {
+      sunset = typeof celestialBodies !== 'undefined' && celestialBodies && celestialBodies.sun && celestialBodies.sun.elevation < 0.2;
+    } catch (e) {}
+    fogController.update(camera, {
+      sunset,
+      storm: false // placeholder for weather system
+    });
 
     // Animate wind for trees
     objectPlacer.animateWind(timeController.time);
