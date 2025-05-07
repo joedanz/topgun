@@ -12,6 +12,7 @@ import Water from './Water';
 import ObjectPlacer from './ObjectPlacer';
 import { makeHeightLookup } from './TerrainUtils';
 import FogController from './FogController';
+import CloudSystem from './CloudSystem';
 
 export async function createDemoTerrainScene(renderer, scene, camera) {
   // --- Water Reflection Setup ---
@@ -83,6 +84,24 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
     maxDistance: 4000
   });
   window.fogController = fogController;
+
+  // --- Cloud System ---
+  let cloudTexture = null;
+  const loader = new THREE.TextureLoader();
+  cloudTexture = await new Promise((resolve) => {
+    loader.load('src/assets/cloud_soft.png', resolve, undefined, () => resolve(null));
+  });
+  const cloudSystem = new CloudSystem(scene, {
+    numClouds: 24,
+    cloudColor: 0xffffff,
+    cloudOpacity: 0.75,
+    cloudHeight: 600,
+    cloudSpread: 2200,
+    cloudScale: [180, 320],
+    windSpeed: 30,
+    cloudTexture
+  });
+  window.cloudSystem = cloudSystem;
 
   // --- Environmental Objects & Vegetation ---
   // Assume terrain mesh is the first visibleChunkMeshes[0] (for demo)
@@ -265,6 +284,13 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
       sunset,
       storm: false // placeholder for weather system
     });
+
+    // Animate clouds
+    let now = performance.now() / 1000;
+    window._lastCloudTime = window._lastCloudTime || now;
+    let delta = now - window._lastCloudTime;
+    window._lastCloudTime = now;
+    cloudSystem.animateClouds(delta);
 
     // Animate wind for trees
     objectPlacer.animateWind(timeController.time);
