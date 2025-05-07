@@ -8,8 +8,18 @@ import SkyDome from './SkyDome';
 import TimeController from './TimeController';
 import StarField from './StarField';
 import CelestialBody from './CelestialBody';
+import Water from './Water';
 
 export async function createDemoTerrainScene(renderer, scene, camera) {
+  // --- Water Reflection Setup ---
+  const reflectionRenderTarget = new THREE.WebGLRenderTarget(1024, 1024, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    format: THREE.RGBAFormat
+  });
+  const mirrorCamera = camera.clone();
+  mirrorCamera.matrixAutoUpdate = true;
+
   // Load heightmap (for demo, generate flat if no image)
   let heights;
   const terrainSize = 1200;
@@ -54,6 +64,13 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
   const sky = new SkyDome();
   scene.add(sky.getMesh());
   window.sky = sky; // Expose for debugging
+
+  // Water (add after terrain, before sky/stars)
+  const water = new Water({ elevation: 0 });
+  scene.add(water.getMesh());
+  window.water = water;
+  // Set initial reflection texture
+  water.setReflectionTexture(reflectionRenderTarget.texture);
 
   // Star field (add behind skydome)
   const stars = new StarField();
@@ -208,6 +225,30 @@ export async function createDemoTerrainScene(renderer, scene, camera) {
       sky.mesh.material.uniforms.bottomColor.value.copy(bottom);
     }
     sky.updatePosition(camera);
+
+    // --- Water Reflection Pass ---
+    // Position mirror camera below water plane, flip Y
+    mirrorCamera.position.copy(camera.position);
+    mirrorCamera.position.y *= -1; // Mirror over water
+    mirrorCamera.up.set(0, -1, 0); // Flip up
+    mirrorCamera.lookAt(
+      camera.position.x,
+      -camera.position.y,
+      camera.position.z
+    );
+    mirrorCamera.updateMatrixWorld();
+    mirrorCamera.projectionMatrix.copy(camera.projectionMatrix);
+    // Hide water mesh for reflection pass
+    water.getMesh().visible = false;
+    renderer.setRenderTarget(reflectionRenderTarget);
+    renderer.render(scene, mirrorCamera);
+    renderer.setRenderTarget(null);
+    water.getMesh().visible = true;
+    // Set reflection texture
+    water.setReflectionTexture(reflectionRenderTarget.texture);
+
+    // Animate water
+    water.update(timeController.time);
 
     // --- Animate sun and moon ---
     // Sun: rises at t=0.25 (6am), sets at t=0.75 (6pm)
