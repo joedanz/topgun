@@ -17,6 +17,8 @@
  * @param {object} [options] - { source, hitLocation, distance, armor, projectile }
  * @returns {object} - { destroyed: boolean, remaining: number, finalDamage: number, crit: boolean }
  */
+import PlayerPerformanceTracker from './PlayerPerformanceTracker';
+
 export function applyDamage(target, baseAmount, options = {}) {
   if (typeof target.health !== 'number') return { destroyed: false, remaining: 0, finalDamage: 0 };
   if (target.state === 'destroyed') return { destroyed: true, remaining: 0, finalDamage: 0 };

@@ -44,16 +44,43 @@ const FORMATION_OFFSETS = {
   ],
 };
 
+/**
+ * FormationManager
+ * Manages AI aircraft formations, leader-follower logic, and tactical coordination.
+ *
+ * Integrates with DifficultyManager to scale formation spacing and group behaviors by difficulty.
+ * - Spacing and group aggression update automatically when difficulty changes.
+ * - Use groupAggression for tactical command responsiveness (see issueCommand).
+ */
 export default class FormationManager {
+  /**
+   * @param {string} type - Formation type (see FORMATION_TYPES)
+   * @param {EnemyAircraft[]} aircraftList - Initial aircraft in formation
+   */
   constructor(type = FORMATION_TYPES.V, aircraftList = []) {
     this.type = type;
     this.aircraft = [...aircraftList]; // Array of EnemyAircraft
     this.leader = this.aircraft[0] || null;
     this.offsets = FORMATION_OFFSETS[type] || FORMATION_OFFSETS[FORMATION_TYPES.V];
-    this.spacing = 1.0; // multiplier for dynamic spacing
+    // Dynamic parameters
+    this.spacing = 1.0; // Updated by difficulty
+    this.groupAggression = 0.5; // Updated by difficulty
     this.command = null;
     this.tacticalState = 'patrol';
     this.lastLeaderId = this.leader ? this.leader.id : null;
+
+    // Listen for difficulty changes
+    if (typeof window !== 'undefined' && window.DifficultyManager) {
+      window.DifficultyManager.onChange(this._onDifficultyChange.bind(this));
+      this._onDifficultyChange(window.DifficultyManager.getCurrent());
+    } else {
+      // Fallback: import directly if needed
+      try {
+        const DifficultyManager = require('../ai/DifficultyManager').default;
+        DifficultyManager.onChange(this._onDifficultyChange.bind(this));
+        this._onDifficultyChange(DifficultyManager.getCurrent());
+      } catch (e) { /* ignore */ }
+    }
   }
 
   setType(type) {
@@ -72,6 +99,19 @@ export default class FormationManager {
   }
 
   update(dt) {
+    // Dynamically update spacing and groupAggression from DifficultyManager
+    let diff = null;
+    if (typeof window !== 'undefined' && window.DifficultyManager) {
+      diff = window.DifficultyManager.getCurrent();
+    } else {
+      try {
+        diff = require('../ai/DifficultyManager').default.getCurrent();
+      } catch (e) {}
+    }
+    if (diff) {
+      this.spacing = diff.formationSpacing;
+      this.groupAggression = diff.groupAggression;
+    }
     // Check if leader is alive, reassign if needed
     if (!this.leader || this.leader.destroyed) {
       this._assignNewLeader();
@@ -114,8 +154,17 @@ export default class FormationManager {
     }
   }
 
+  /**
+   * Issue a tactical command to the formation (attack, break, regroup).
+   * Group response speed/aggression is scaled by this.groupAggression (from DifficultyManager).
+   * @param {string} cmd
+   * @param {object} params
+   */
   issueCommand(cmd, params = {}) {
     this.command = cmd;
+    // TODO: Use this.groupAggression to determine how quickly/decisively the group responds
+    // Example: setTimeout(() => this._executeCommand(cmd, params), (1 - this.groupAggression) * 2000);
+    // For now, this is a stub.
     // TODO: handle tactical commands (attack, break, regroup, etc.)
   }
 
@@ -132,4 +181,15 @@ export default class FormationManager {
       scene.add(line);
     }
   }
+
+  /**
+   * Called when DifficultyManager changes difficulty. Updates formation parameters.
+   * @param {object} diffPreset
+   */
+  _onDifficultyChange(diffPreset) {
+    this.spacing = diffPreset.formationSpacing;
+    this.groupAggression = diffPreset.groupAggression;
+    // Could update other group behaviors here (e.g., regroupDelay)
+  }
 }
+

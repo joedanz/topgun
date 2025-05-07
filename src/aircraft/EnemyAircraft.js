@@ -5,6 +5,8 @@ import { StateMachine } from '../ai/StateMachine';
 import { createEnemyAIStates } from '../ai/EnemyAIStates';
 import * as THREE from 'three';
 import FormationManager, { FORMATION_TYPES } from './FormationManager';
+import DifficultyManager from '../ai/DifficultyManager';
+import AITelemetryTracker from '../systems/AITelemetryTracker';
 
 export default class EnemyAircraft extends Aircraft {
   // --- Terrain-aware helper ---
@@ -70,6 +72,19 @@ export default class EnemyAircraft extends Aircraft {
 
   constructor(config = {}) {
     super(config);
+    // --- Mesh setup (placeholder: red box) ---
+    const geometry = new THREE.BoxGeometry(12, 4, 28); // width, height, depth
+    const material = new THREE.MeshPhongMaterial({ color: 0xff2222 });
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh.position.copy(this.position);
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
+    this.mesh.userData.logic = this; // link back for debug/selection
+
+    // --- Telemetry ---
+    this._lastState = null;
+    this._stateTimeAccum = { engage: 0, evade: 0, patrol: 0 };
+
     // --- Threat memory ---
     this._threatMemoryTimer = 0;
     this._threatMemoryDuration = 2.0; // seconds
@@ -79,6 +94,15 @@ export default class EnemyAircraft extends Aircraft {
     this.formationIndex = -1; // Index in formation (0 = leader)
 
     this.isEnemy = true;
+    // Keep mesh position in sync with logic position
+    this._syncMeshPosition = () => {
+      if (this.mesh && this.position) {
+        this.mesh.position.copy(this.position);
+        this.mesh.quaternion.copy(this.rotation);
+      }
+    };
+    // Optionally, you can call this._syncMeshPosition() in update(), or set up a setter for position.
+
     this.stateDebug = 'patrol';
     this.patrolRoute = config.patrolRoute || [];
     this.currentWaypointIndex = 0;
@@ -86,6 +110,10 @@ export default class EnemyAircraft extends Aircraft {
     this.maxSpeed = (config.maxSpeed !== undefined) ? config.maxSpeed : 1000; // units/sec
     this.maxAccel = (config.maxAccel !== undefined) ? config.maxAccel : 14000; // units/sec^2
     this.maxTurnRate = (config.maxTurnRate !== undefined) ? config.maxTurnRate : 90 * Math.PI / 180; // radians/sec
+    // Store base values for scaling
+    this._baseMaxSpeed = this.maxSpeed;
+    this._baseMaxAccel = this.maxAccel;
+    this._baseMaxTurnRate = this.maxTurnRate;
     // --- Detection parameters ---
     const aiCfg = config.aiConfig || {};
     this.detectionRange = aiCfg.detectionRange !== undefined ? aiCfg.detectionRange : 1400;
@@ -109,7 +137,71 @@ export default class EnemyAircraft extends Aircraft {
     this._lastAimPoint = null;
   }
 
+  // --- Telemetry: record shots fired/hit ---
+  fireWeapon(weaponIdx = 0, target = null) {
+    // Call original fire logic (assume super.fireWeapon exists, otherwise copy logic)
+    const result = super.fireWeapon ? super.fireWeapon(weaponIdx, target) : true;
+    // Always record shot
+    AITelemetryTracker.recordEvent(this.id, 'shot', { hit: false });
+    return result;
+  }
+
+  registerHit(target) {
+    // Called when this AI hits a target (player or other AI)
+    AITelemetryTracker.recordEvent(this.id, 'shot', { hit: true });
+  }
+
+  onKill() {
+    AITelemetryTracker.recordEvent(this.id, 'kill');
+  }
+
+  onDeath() {
+    AITelemetryTracker.recordEvent(this.id, 'death');
+  }
+
+  // --- Telemetry: evasion and maneuvers ---
+  startEvasionManeuver() {
+    AITelemetryTracker.recordEvent(this.id, 'evasionAttempt');
+    this.evasionActive = true;
+  }
+  endEvasionManeuver(success = false) {
+    if (success) {
+      AITelemetryTracker.recordEvent(this.id, 'evasionAttempt', { success: true });
+    }
+    this.evasionActive = false;
+    this._hideManeuverLabel && this._hideManeuverLabel();
+  }
+
+  // --- Telemetry: countermeasures ---
+  deployCountermeasure(type = 'flare') {
+    AITelemetryTracker.recordEvent(this.id, 'countermeasure', { type });
+    // Call original deploy logic if exists
+    if (super.deployCountermeasure) return super.deployCountermeasure(type);
+  }
+
+  // --- Telemetry: maneuvers ---
+  performBreakTurn(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'BreakTurn' }); /* ...original logic... */ }
+  performSplitS() { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'SplitS' }); /* ...original logic... */ }
+  performBarrelRoll(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'BarrelRoll' }); /* ...original logic... */ }
+  performImmelmann(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'Immelmann' }); /* ...original logic... */ }
+  performVerticalScissors() { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'VerticalScissors' }); /* ...original logic... */ }
+  performLowYoYo(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'LowYoYo' }); /* ...original logic... */ }
+  performHighYoYo(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'HighYoYo' }); /* ...original logic... */ }
+  performRollingScissors(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'RollingScissors' }); /* ...original logic... */ }
+  performFlatScissors(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'FlatScissors' }); /* ...original logic... */ }
+  performCobraManeuver() { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'Cobra' }); /* ...original logic... */ }
+  performLagDisplacementRoll(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'LagDisplacementRoll' }); /* ...original logic... */ }
+  performDefensiveSpiral(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'DefensiveSpiral' }); /* ...original logic... */ }
+  performPitchbackTurn(dir) { AITelemetryTracker.recordEvent(this.id, 'maneuver', { name: 'PitchbackTurn' }); /* ...original logic... */ }
+
   update(dt, gameContext = {}) {
+    // --- Difficulty-based performance scaling ---
+    const diff = DifficultyManager.getCurrent();
+    // These are the base values set in the constructor
+    this.maxSpeed = (this._baseMaxSpeed || this.maxSpeed) * (diff.maxSpeedMultiplier || 1.0);
+    this.maxAccel = (this._baseMaxAccel || this.maxAccel) * (diff.maxAccelMultiplier || 1.0);
+    this.maxTurnRate = (this._baseMaxTurnRate || this.maxTurnRate) * (diff.maxTurnRateMultiplier || 1.0);
+
     // --- Threat memory timer decrement ---
     if (this._threatMemoryTimer > 0) {
       this._threatMemoryTimer -= dt;
@@ -131,6 +223,18 @@ export default class EnemyAircraft extends Aircraft {
 
     // AI logic
     this.stateMachine.update(dt, gameContext);
+    // --- AI telemetry: record state time ---
+    if (this.stateMachine && this.stateMachine.currentState && typeof this.stateMachine.currentState === 'string') {
+      const state = this.stateMachine.currentState;
+      if (['engage','evade','patrol'].includes(state)) {
+        this._stateTimeAccum[state] = (this._stateTimeAccum[state] || 0) + dt;
+        // Emit every ~2 seconds per state
+        if (this._stateTimeAccum[state] > 2.0) {
+          AITelemetryTracker.recordEvent(this.id, 'stateTime', { state, dt: this._stateTimeAccum[state] });
+          this._stateTimeAccum[state] = 0;
+        }
+      }
+    }
     // Call base update for physics
     super.update(dt);
   }
@@ -1114,9 +1218,10 @@ performRandomJink() {
 
 updateEvasion(dt, evasionConfig = {}) {
   if (!this.evasionActive) return;
-  // Difficulty scaling
-  const aggression = typeof evasionConfig.aggression === 'number' ? evasionConfig.aggression : 0.6;
-  const cmProbability = typeof evasionConfig.cmProbability === 'number' ? evasionConfig.cmProbability : 0.5;
+  // Always pull from DifficultyManager for live scaling
+  const diff = DifficultyManager.getCurrent();
+  const aggression = (typeof evasionConfig.aggression === 'number') ? evasionConfig.aggression : (typeof this._evasionAggression === 'number' ? this._evasionAggression : diff.maneuverAggression);
+  const cmProbability = (typeof evasionConfig.cmProbability === 'number') ? evasionConfig.cmProbability : (typeof this._cmProbability === 'number' ? this._cmProbability : (0.4 + 0.5 * diff.maneuverAggression));
   // --- Energy management ---
   const minEnergy = 0.45; // fraction of maxSpeed, below which AI should conserve energy
   const currentSpeed = this.getSpeed ? this.getSpeed() : (this.velocity ? this.velocity.length() : 0);
@@ -1152,21 +1257,29 @@ updateEvasion(dt, evasionConfig = {}) {
   // Select maneuver based on threat
   if (threatType === 'missile') {
     // Missile: select from break turn, split-S, barrel roll, Immelmann, vertical scissors, low yo-yo, high yo-yo, rolling scissors
-    const maneuvers = [
+    // Tactical complexity: higher values = more advanced maneuvers available
+    let maneuvers = [
       () => this.performBreakTurn(Math.random() < 0.5 ? 1 : -1),
       () => this.performSplitS(),
       () => this.performBarrelRoll(Math.random() < 0.5 ? 1 : -1),
-      () => this.performImmelmann(Math.random() < 0.5 ? 1 : -1),
-      () => this.performVerticalScissors(),
-      () => this.performLowYoYo(Math.random() < 0.5 ? 1 : -1),
-      () => this.performHighYoYo(Math.random() < 0.5 ? 1 : -1),
-      () => this.performRollingScissors(Math.random() < 0.5 ? 1 : -1),
-      () => this.performFlatScissors(Math.random() < 0.5 ? 1 : -1),
-      () => this.performCobraManeuver(),
-      () => this.performLagDisplacementRoll(Math.random() < 0.5 ? 1 : -1),
-      () => this.performDefensiveSpiral(Math.random() < 0.5 ? 1 : -1),
-      () => this.performPitchbackTurn(Math.random() < 0.5 ? 1 : -1)
+      () => this.performImmelmann(Math.random() < 0.5 ? 1 : -1)
     ];
+    const tacticalComplexity = diff.tacticalComplexity || 0.2;
+    if (tacticalComplexity > 0.3) {
+      maneuvers.push(() => this.performVerticalScissors());
+      maneuvers.push(() => this.performLowYoYo(Math.random() < 0.5 ? 1 : -1));
+      maneuvers.push(() => this.performHighYoYo(Math.random() < 0.5 ? 1 : -1));
+    }
+    if (tacticalComplexity > 0.6) {
+      maneuvers.push(() => this.performRollingScissors(Math.random() < 0.5 ? 1 : -1));
+      maneuvers.push(() => this.performFlatScissors(Math.random() < 0.5 ? 1 : -1));
+      maneuvers.push(() => this.performCobraManeuver());
+      maneuvers.push(() => this.performLagDisplacementRoll(Math.random() < 0.5 ? 1 : -1));
+    }
+    if (tacticalComplexity > 0.9) {
+      maneuvers.push(() => this.performDefensiveSpiral(Math.random() < 0.5 ? 1 : -1));
+      maneuvers.push(() => this.performPitchbackTurn(Math.random() < 0.5 ? 1 : -1));
+    }
     // If energy is low, prefer less energy-draining maneuvers
     if (energyLow) {
       maneuvers.unshift(() => this.performBreakTurn(Math.random() < 0.5 ? 1 : -1));

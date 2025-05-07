@@ -18,6 +18,8 @@ import EnemyDebugLabel from './components/EnemyDebugLabel';
 import EnemyPatrolDebug from './components/EnemyPatrolDebug';
 import EnemyFOVDebug from './components/EnemyFOVDebug';
 import DDADebugPanel from './components/DDADebugPanel'; // DDA debug overlay
+import PlayerPerformanceTracker from './systems/PlayerPerformanceTracker';
+import DifficultyManager from './ai/DifficultyManager';
 import './components/PauseMenu.css';
 
 const appDiv = document.getElementById('app');
@@ -208,6 +210,67 @@ function spawnEnemies(num = 3) {
   window.enemies = enemies;
 }
 
+// --- Formation Demo: Seed a formation of 4 enemy aircraft and visualize ---
+window.runFormationDemo = function(scene, player) {
+  const EnemyAircraft = window.EnemyAircraft;
+  const FormationManager = window.FormationManager || require('./aircraft/FormationManager').default;
+  const THREE = window.THREE;
+  // Create 4 enemy aircraft in a V formation
+  const enemies = [];
+  for (let i = 0; i < 4; i++) {
+    const pos = new THREE.Vector3(i * 40 - 60, 120, -400 - i * 30);
+    const enemy = new EnemyAircraft({ position: pos });
+    scene.add(enemy.mesh);
+    enemies.push(enemy);
+  }
+  const formation = new FormationManager('V', enemies);
+  window.enemyFormation = formation;
+  // Place player facing the formation
+  if (player && player.position) {
+    player.position.set(0, 110, 0);
+    player.mesh.position.copy(player.position);
+  }
+  // Enable debug lines
+  window.DEBUG_FORMATION = true;
+  alert('Formation demo: 4 enemies spawned in V formation. Press Shift+F to toggle debug lines.');
+};
+
+// Debug key: Shift+F toggles formation debug lines
+window.DEBUG_FORMATION = false;
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'F' && e.shiftKey) {
+    window.DEBUG_FORMATION = !window.DEBUG_FORMATION;
+    if (window.DEBUG_FORMATION) {
+      console.log('Formation debug lines ON');
+    } else {
+      console.log('Formation debug lines OFF');
+    }
+  }
+});
+
+// In the main animation/game loop, draw formation debug lines if enabled
+// --- Patch or define updateFormations to avoid redeclaration ---
+if (!window.updateFormations) {
+  window.updateFormations = function(dt) {
+    if (window.enemyFormation) {
+      window.enemyFormation.update(dt);
+      if (window.DEBUG_FORMATION && window.scene) {
+        window.enemyFormation.debugDraw(window.scene);
+      }
+    }
+  };
+} else {
+  // Extend the existing updateFormations to include formation debug logic
+  const origUpdateFormations = window.updateFormations;
+  window.updateFormations = function(dt) {
+    origUpdateFormations(dt);
+    if (window.enemyFormation && window.DEBUG_FORMATION && window.scene) {
+      window.enemyFormation.debugDraw(window.scene);
+    }
+  };
+}
+// (See above: only one updateFormations is defined, and debug logic is injected if needed.)
+
 // Expose spawnEnemies globally for testing
 window.spawnEnemies = spawnEnemies;
 
@@ -237,7 +300,61 @@ function createPlayerAircraft() {
 }
 
 // Create player aircraft before spawning enemies
-createPlayerAircraft();
+const playerAircraft = createPlayerAircraft();
+window.playerAircraft = playerAircraft;
+
+// --- Integrate PlayerPerformanceTracker with player events ---
+if (playerAircraft) {
+  // Example: hook into player death (assuming onDestroyed is called on player death)
+  const origOnDestroyed = playerAircraft.onDestroyed;
+  playerAircraft.onDestroyed = function(options) {
+    PlayerPerformanceTracker.recordDeath();
+    if (typeof origOnDestroyed === 'function') origOnDestroyed.call(this, options);
+  };
+}
+
+// Listen for kill events from EnemyAircraft (global patch for demo)
+if (window.EnemyAircraft) {
+  const origEnemyOnDestroyed = window.EnemyAircraft.prototype.onDestroyed;
+  window.EnemyAircraft.prototype.onDestroyed = function(options) {
+    // If killed by player, record kill
+    if (options && options.source === window.playerAircraft) {
+      PlayerPerformanceTracker.recordKill();
+    }
+    if (typeof origEnemyOnDestroyed === 'function') origEnemyOnDestroyed.call(this, options);
+  };
+}
+
+// Listen for mission completion/failure (demo: stub, wire to your mission logic)
+window.onMissionCompleted = function() {
+  PlayerPerformanceTracker.recordMissionCompleted();
+};
+window.onMissionFailed = function() {
+  PlayerPerformanceTracker.recordMissionFailed();
+};
+
+// Example: Listen for scoring (stub, wire to your scoring logic)
+window.addScore = function(amount) {
+  PlayerPerformanceTracker.addScore(amount);
+};
+
+// --- Dynamic Difficulty Scaling Logic ---
+// Listen for performance events and adjust difficulty
+PlayerPerformanceTracker.onEvent(evt => {
+  const { type, stats } = evt;
+  // Simple demo logic: too many deaths = easier, high streak = harder
+  if (type === 'death' && stats.deaths > 2) {
+    DifficultyManager.setDifficulty('easy');
+  } else if (type === 'kill' && stats.streak >= 5) {
+    DifficultyManager.setDifficulty('hard');
+  } else if (type === 'missionFailed') {
+    DifficultyManager.setDifficulty('easy');
+  } else if (type === 'missionCompleted' && stats.streak >= 3) {
+    DifficultyManager.setDifficulty('hard');
+  } else if (type === 'reset') {
+    DifficultyManager.setDifficulty('medium');
+  }
+});
 
 // Then spawn enemies in a formation
 spawnEnemies(4);

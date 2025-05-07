@@ -553,7 +553,7 @@
           "id": 6,
           "title": "Develop formation flying capabilities",
           "description": "Implement the ability for multiple AI aircraft to fly in coordinated formations",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             2
           ],

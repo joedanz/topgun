@@ -8,7 +8,13 @@ import * as THREE from 'three';
  * @param {object} [config={}] - AI configuration options for patrol, engagement, and evasion.
  * @returns {object} State definitions for use with a StateMachine.
  */
+import DifficultyManager from './DifficultyManager';
+
 export function createEnemyAIStates(enemy, config = {}) {
+  // Helper to get current difficulty settings
+  function getDiff() {
+    return DifficultyManager.getCurrent();
+  }
   return {
     patrol: {
       /**
@@ -16,11 +22,6 @@ export function createEnemyAIStates(enemy, config = {}) {
        * Sets up patrol route and resets waypoint index.
        * Side Effects: Modifies enemy state, route, and debug state.
        */
-  /**
-   * Called when entering the patrol state.
-   * Sets up patrol route and resets waypoint index.
-   * Side Effects: Modifies enemy state, route, and debug state.
-   */
       onEnter() {
         // Assign a patrol route with randomization/perturbation for unpredictability
         enemy.setPatrolRoute(
@@ -31,9 +32,20 @@ export function createEnemyAIStates(enemy, config = {}) {
           }
         );
         enemy.currentWaypointIndex = 0;
+        // Set difficulty-scaled detection and reaction
+        const diff = getDiff();
+        enemy.detectionRange = diff.detectionRange;
+        enemy.fieldOfView = diff.fieldOfView;
+        enemy.reactionTime = diff.reactionTime;
         enemy.stateDebug = 'patrol';
       },
       onUpdate(dt) {
+        // Always update difficulty-scaled detection/reaction
+        const diff = getDiff();
+        enemy.detectionRange = diff.detectionRange;
+        enemy.fieldOfView = diff.fieldOfView;
+        enemy.reactionTime = diff.reactionTime;
+
         // Move toward current waypoint
         const wp = enemy.getCurrentWaypoint && enemy.getCurrentWaypoint();
         if (!wp) return;
@@ -50,33 +62,16 @@ export function createEnemyAIStates(enemy, config = {}) {
         // Aircraft avoidance
         if (typeof window !== 'undefined' && window.enemies) {
           for (const other of window.enemies) {
-            if (other !== enemy && enemy.position.distanceTo(other.position) < (config.avoidRadius || 120)) {
-              if (window.DEBUG_AI_STATE) {
-                console.log(`[AI] ${enemy.id} avoiding collision: skipping waypoint`);
-              }
+            if (other !== enemy && other.position.distanceTo(enemy.position) < 40) {
+              // Simple collision avoidance: skip waypoint
               enemy.advanceWaypoint && enemy.advanceWaypoint();
               return;
             }
           }
         }
-
-        // --- Normal patrol logic below ---
-        if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${enemy.id} patrol: waypoint #${enemy.currentWaypointIndex + 1} at (${wp.x.toFixed(1)}, ${wp.y.toFixed(1)}, ${wp.z.toFixed(1)})`);
-        }
-        const toWP = wp.clone().sub(enemy.position);
-        const waypointRadius = config.waypointRadius || 80;
-        if (toWP.length() < waypointRadius) {
-          enemy.advanceWaypoint && enemy.advanceWaypoint();
-        } else {
-          // Smooth steering and throttle toward waypoint
-          enemy.steerTowards(wp, dt, false);
-          // Optionally clamp speed here for patrol
-          if (enemy.getSpeed && typeof config.patrolSpeed === 'number') {
-            if (enemy.getSpeed() > config.patrolSpeed) {
-              enemy.applyThrust(-4000); // slow down gently
-            }
-          }
+        // --- Throttle/Speed Management ---
+        if (enemy.velocity && enemy.velocity.length() > enemy.maxSpeed * 0.98) {
+          enemy.applyThrust(-4000); // slow down gently
         }
         // --- Detection logic for engagement ---
         enemy.updateDetection(dt);
@@ -104,6 +99,51 @@ export function createEnemyAIStates(enemy, config = {}) {
        * Side Effects: Sets debug state, resets timers.
        */
       onEnter(gameContext = {}) {
+        // Set difficulty-scaled aggression and tactics
+        const diff = getDiff();
+        enemy.reactionTime = diff.reactionTime;
+        // --- Advanced tactics ---
+        enemy._tacticalComplexity = diff.tacticalComplexity;
+        // High tactical complexity: break formation for solo attack
+        if (enemy.formation && diff.tacticalComplexity > 0.8 && Math.random() < 0.4) {
+          enemy.leaveFormation && enemy.leaveFormation();
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} breaks formation for advanced attack`);
+          }
+        }
+        // Feint disengagement (retreat, then re-engage)
+        if (diff.tacticalComplexity > 0.9 && Math.random() < 0.15) {
+          enemy._feintRetreat = true;
+          enemy._feintTimer = 0;
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} will feint disengagement`);
+          }
+        } else {
+          enemy._feintRetreat = false;
+        }
+        // Multi-step maneuvers: queue a second maneuver
+        if (diff.tacticalComplexity > 0.6 && Math.random() < 0.25) {
+          enemy._queuedManeuver = true;
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} will chain maneuvers`);
+          }
+        } else {
+          enemy._queuedManeuver = false;
+        }
+        // Coordinated attack: signal to nearby AI
+        if (diff.tacticalComplexity > 0.8 && typeof window !== 'undefined' && window.enemies && Math.random() < 0.2) {
+          const allies = window.enemies.filter(e => e !== enemy && e.stateMachine && e.stateMachine.currentState === 'engage' && e.position.distanceTo(enemy.position) < 1800);
+          if (allies.length > 0) {
+            allies.forEach(a => { a._coordinatedAttackTarget = enemy.target; });
+            if (window.DEBUG_AI_STATE) {
+              console.log(`[AI] ${enemy.id} coordinates attack with ${allies.length} allies`);
+            }
+          }
+        }
+      }
+        enemy.aimAccuracy = diff.aimAccuracy;
+        enemy.maneuverAggression = diff.maneuverAggression;
+        enemy.tacticalComplexity = diff.tacticalComplexity;
         enemy.acquireTarget(gameContext && gameContext.targets ? gameContext.targets : [window.playerAircraft]);
         enemy.stateDebug = 'engage';
         enemy.lostTargetTimer = 0;
@@ -111,63 +151,96 @@ export function createEnemyAIStates(enemy, config = {}) {
           console.log(`[AI] ${enemy.id} entering ENGAGE state`);
         }
       },
-      /**
-       * Called every frame in engage state.
-       * Handles dynamic target acquisition, pursuit, and checks for loss of target or threats.
-       * Transitions to patrol or evade as appropriate.
-       * @param {number} dt - Delta time in seconds.
-       * @param {object} [gameContext={}] - Optional context with targets array.
-       */
       onUpdate(dt, gameContext = {}) {
+        // Update difficulty-scaled aggression and tactics
+        const diff = getDiff();
+        enemy.reactionTime = diff.reactionTime;
+        enemy.aimAccuracy = diff.aimAccuracy;
+        enemy.maneuverAggression = diff.maneuverAggression;
+        enemy.tacticalComplexity = diff.tacticalComplexity;
         // Always re-acquire best target each frame for dynamic prioritization
         const targets = gameContext.targets || [window.playerAircraft];
         enemy.acquireTarget(targets);
-        if (!enemy.currentTarget || !enemy.canDetectTarget(enemy.currentTarget)) {
-          enemy.lostTargetTimer = (enemy.lostTargetTimer || 0) + dt;
-          if (enemy.lostTargetTimer > 0.5) {
-            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} lost target, returning to PATROL`);
+        // --- Feint disengagement logic ---
+        if (enemy._feintRetreat) {
+          enemy._feintTimer = (enemy._feintTimer || 0) + dt;
+          // Retreat for 2-3 seconds, then re-engage
+          if (enemy._feintTimer < 2.2 + Math.random()) {
+            // Move away from player (simple vector away)
+            if (enemy.target && enemy.position && enemy.target.position) {
+              const away = enemy.position.clone().sub(enemy.target.position).normalize();
+              enemy.applyThrust(enemy.maxAccel * 0.8);
+              enemy.applyPitch(0.15);
+              enemy.applyRoll((Math.random() < 0.5 ? 1 : -1) * 0.25);
+              enemy.applyYaw((Math.random() < 0.5 ? 1 : -1) * 0.18);
+              enemy.position.add(away.multiplyScalar(dt * 180));
+              if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+                console.log(`[AI] ${enemy.id} feinting retreat...`);
+              }
             }
-            enemy.stateMachine.transition('patrol');
             return;
-          }
-        } else {
-          enemy.lostTargetTimer = 0;
-          // --- Tactical engagement logic ---
-          const tactical = enemy.assessTacticalSituation ? enemy.assessTacticalSituation() : { canAttack: false };
-          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-            console.log(`[AI] ${enemy.id} tactical:`, tactical);
-          }
-          // Steer toward target (with aggression if needsManeuver)
-          enemy.steerTowards(enemy.currentTarget.position, dt, tactical.needsManeuver);
-          // Fire if in good attack position
-          if (tactical.canAttack && enemy.canFireAtTarget && enemy.canFireAtTarget()) {
-            enemy.fireWeaponAtTarget();
+          } else {
+            enemy._feintRetreat = false;
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} firing at target ${enemy.currentTarget.id || '[unknown]'}`);
-            }
-          }
-          // Tactical: evade if under attack or at a disadvantage
-          // --- Evasion Cooldown: block rapid re-entry ---
-          if (enemy.isUnderAttack && enemy.isUnderAttack()) {
-            if (enemy._evasionCooldown && enemy._evasionCooldown > 0) {
-              if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-                console.log(`[AI] ${enemy.id} evade blocked by cooldown (${enemy._evasionCooldown.toFixed(2)}s left)`);
-              }
-            } else {
-              if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-                console.log(`[AI] ${enemy.id} switching to EVADE (under attack)`);
-              }
-              enemy.stateMachine.transition('evade');
+              console.log(`[AI] ${enemy.id} re-engages after feint`);
             }
           }
         }
+        // --- Multi-step maneuvers logic ---
+        if (enemy._queuedManeuver && Math.random() < 0.13) {
+          // After a maneuver, chain a second one
+          const maneuvers = [
+            () => enemy.performBarrelRoll(Math.random() < 0.5 ? 1 : -1),
+            () => enemy.performImmelmann(Math.random() < 0.5 ? 1 : -1),
+            () => enemy.performVerticalScissors(),
+            () => enemy.performLowYoYo(Math.random() < 0.5 ? 1 : -1),
+            () => enemy.performHighYoYo(Math.random() < 0.5 ? 1 : -1),
+            () => enemy.performRollingScissors(Math.random() < 0.5 ? 1 : -1)
+          ];
+          maneuvers[Math.floor(Math.random() * maneuvers.length)]();
+          // Only trigger once per engage
+          enemy._queuedManeuver = false;
+        }
+        // --- Coordinated attack: focus fire on target if flagged ---
+        if (enemy._coordinatedAttackTarget) {
+          enemy.target = enemy._coordinatedAttackTarget;
+          // Optionally, boost aggression
+          enemy._evasionAggression = Math.max(enemy._evasionAggression || 0.8, 1.0);
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} focusing fire (coordinated attack)`);
+          }
+        }
+        // --- Target reacquisition and loss logic ---
+        if (!enemy.target || enemy.target.destroyed) {
+          enemy.lostTargetTimer = (enemy.lostTargetTimer || 0) + dt;
+          if (enemy.lostTargetTimer > 2.5) {
+            enemy.stateMachine.transition('patrol');
+          }
+          return;
+        }
+        // Lost target: increment lost timer
+        enemy.lostTargetTimer = (enemy.lostTargetTimer || 0) + dt;
+        if (enemy.lostTargetTimer > 2.5) {
+          enemy.stateMachine.transition('patrol');
+        }
+        enemy.lostTargetTimer = 0;
+        // --- Evasion Cooldown: block rapid re-entry ---
+        if (enemy.isUnderAttack && enemy.isUnderAttack()) {
+          if (enemy._evasionCooldown && enemy._evasionCooldown > 0) {
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] evade blocked by cooldown (${enemy._evasionCooldown.toFixed(2)}s left)`);
+            }
+          } else {
+            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+              console.log(`[AI] switching to EVADE (under attack)`);
+            }
+            enemy.stateMachine.transition('evade');
+          }
+        }
       },
-      /**
-       * Called when exiting the engage state.
-       * Side Effects: Resets lost target timer.
-       */
-      onExit() { enemy.lostTargetTimer = 0; }
+      onExit() {
+        enemy.lostTargetTimer = 0;
+      }
     },
     evade: {
       /**
@@ -175,35 +248,24 @@ export function createEnemyAIStates(enemy, config = {}) {
        * Sets evasion parameters based on difficulty, triggers evasion maneuver, and resets timers.
        * Side Effects: Modifies enemy evasion aggression, timers, and debug state.
        */
-  /**
-   * Called when entering the evade state.
-   * Sets evasion parameters based on difficulty, triggers evasion maneuver, and resets timers.
-   * Side Effects: Modifies enemy evasion aggression, timers, and debug state.
-   */
       onEnter() {
         // --- Difficulty scaling for evasion ---
-        // Use config.difficulty if present (easy, medium, hard)
-        const difficulty = config.difficulty || 'medium';
-        // Set evasion parameters based on difficulty
-        let minEvadeTime = 1.7, maneuverAggression = 0.6, cmProbability = 0.5;
-        if (difficulty === 'easy') {
-          minEvadeTime = 2.2; maneuverAggression = 0.45; cmProbability = 0.3;
-        } else if (difficulty === 'hard') {
-          minEvadeTime = 1.0; maneuverAggression = 0.85; cmProbability = 0.75;
-        } else if (difficulty === 'medium') {
-          minEvadeTime = 1.7; maneuverAggression = 0.6; cmProbability = 0.5;
-        }
-        enemy._evadeMinTime = minEvadeTime;
-        enemy._evasionAggression = maneuverAggression;
-        enemy._cmProbability = cmProbability;
+        const diff = getDiff();
+        enemy._evadeMinTime = Math.max(0.8, 2.0 - diff.maneuverAggression * 1.2); // Lower min time for higher aggression
+        enemy._evasionAggression = diff.maneuverAggression;
+        enemy._cmProbability = 0.4 + 0.5 * diff.maneuverAggression; // More aggressive = more likely to use countermeasures
         enemy.stateDebug = 'evade';
         enemy.startEvasionManeuver && enemy.startEvasionManeuver();
         enemy._evadeTimer = 0;
         if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-          console.log(`[AI] ${enemy.id} entering EVADE state (difficulty: ${difficulty}, minEvadeTime: ${minEvadeTime}s)`);
+          console.log(`[AI] ${enemy.id} entering EVADE state (difficulty: ${DifficultyManager.current}, minEvadeTime: ${enemy._evadeMinTime}s)`);
         }
       },
       onUpdate(dt) {
+        // Update evasion parameters from difficulty
+        const diff = getDiff();
+        enemy._evasionAggression = diff.maneuverAggression;
+        enemy._cmProbability = 0.4 + 0.5 * diff.maneuverAggression;
         // --- Evasion Cooldown ---
         if (enemy._evasionCooldown && enemy._evasionCooldown > 0) {
           enemy._evasionCooldown -= dt;
@@ -218,20 +280,14 @@ export function createEnemyAIStates(enemy, config = {}) {
           cmProbability: enemy._cmProbability
         });
         enemy._evadeTimer = (enemy._evadeTimer || 0) + dt;
-        // Require minimum evasion duration before recovery
-        const minEvadeTime = enemy._evadeMinTime || config.minEvadeTime || 1.7;
-        // Configurable: require distance check only if config.evadeDistance is set
-        let requireDistance = typeof config.evadeDistance !== 'undefined';
-        let safeDistance = requireDistance ? (enemy.distanceToPlayer() > config.evadeDistance) : true;
-        if (enemy._evadeTimer >= minEvadeTime) {
-          if (!enemy.isUnderAttack() && safeDistance) {
-            if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
-              console.log(`[AI] ${enemy.id} recovery: transitioning from EVADE to ENGAGE (timer: ${enemy._evadeTimer.toFixed(2)}s, threat: ${enemy.isUnderAttack()}, safeDistance: ${safeDistance})`);
-            }
-            // Set cooldown before AI can re-enter evade
-            enemy._evasionCooldown = (typeof config.evasionCooldown === 'number') ? config.evasionCooldown : 1.2;
-            enemy.stateMachine.transition('engage');
-          } else {
+        // End evasion after min time and if not under attack
+        if (enemy._evadeTimer > enemy._evadeMinTime && !enemy.isUnderAttack()) {
+          // Set cooldown before AI can re-enter evade
+          enemy._evasionCooldown = (typeof config.evasionCooldown === 'number') ? config.evasionCooldown : 1.2;
+          enemy.stateMachine.transition('engage');
+        } else {
+          if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
+            console.log(`[AI] ${enemy.id} remains in EVADE (timer: ${enemy._evadeTimer.toFixed(2)}s, threat: ${enemy.isUnderAttack()}, safeDistance: ${safeDistance})`);
             if (typeof window !== 'undefined' && window.DEBUG_AI_STATE) {
               console.log(`[AI] ${enemy.id} remains in EVADE (timer: ${enemy._evadeTimer.toFixed(2)}s, threat: ${enemy.isUnderAttack()}, safeDistance: ${safeDistance})`);
             }
