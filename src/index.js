@@ -25,8 +25,9 @@ import './components/PauseMenu.css';
 
 const appDiv = document.getElementById('app');
 const threeEnv = new ThreeEnvironment(appDiv);
-// Expose the Three.js scene globally so enemies can be added from console
+// Expose the Three.js scene and camera globally for debugging
 window.scene = threeEnv.scene;
+window.camera = threeEnv.camera;
 // --- Terrain Demo Integration ---
 createDemoTerrainScene(threeEnv.renderer, threeEnv.scene, threeEnv.camera);
 

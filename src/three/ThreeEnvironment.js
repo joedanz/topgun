@@ -38,8 +38,8 @@ export default class ThreeEnvironment {
     this.camera.position.set(0, 0, 5);
     this.camera.lookAt(0, 0, 0);
 
-    // Skybox (simple color background for now)
-    this.scene.background = new THREE.Color(0x87ceeb); // Sky blue
+    // No background: allow procedural SkyDome to render
+    this.scene.background = null;
 
     // Ambient Light
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // neutral color, moderate intensity
@@ -63,6 +63,11 @@ export default class ThreeEnvironment {
     this.hemisphereLight = new THREE.HemisphereLight(0xaaaaee, 0x444422, 0.6);
     this.scene.add(this.hemisphereLight);
 
+    // Ensure camera far plane is large enough for SkyDome
+    this.camera.far = 20000;
+    this.camera.updateProjectionMatrix();
+
+    // Set up renderer
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -95,33 +100,33 @@ export default class ThreeEnvironment {
     this.adjustLighting = this.adjustLighting.bind(this);
 
     // Load a real skybox using CubeTextureLoader (example images from Three.js)
-    const loader = new THREE.CubeTextureLoader();
-    // Use local MilkyWay skybox images with exact names
-    const baseUrl = '/skybox/';
-    const fileNames = [
-      'dark-s_px.jpg', // +X
-      'dark-s_nx.jpg', // -X
-      'dark-s_py.jpg', // +Y
-      'dark-s_ny.jpg', // -Y
-      'dark-s_pz.jpg', // +Z
-      'dark-s_nz.jpg', // -Z
-    ];
-    const urls = fileNames.map(name => baseUrl + name);
-    console.log('Loading local skybox:', urls);
-    loader.load(
-      urls,
-      (texture) => {
-        this.scene.background = texture;
-        // Optionally: set environment for reflections
-        // this.scene.environment = texture;
-      },
-      undefined,
-      (err) => {
-        console.error('Skybox loading error:', err);
-        // Fallback to sky blue if skybox fails
-        this.scene.background = new THREE.Color(0x87ceeb);
-      }
-    );
+    // Skybox loader disabled so procedural SkyDome is visible
+    // const loader = new THREE.CubeTextureLoader();
+    // const baseUrl = '/skybox/';
+    // const fileNames = [
+    //   'dark-s_px.jpg', // +X
+    //   'dark-s_nx.jpg', // -X
+    //   'dark-s_py.jpg', // +Y
+    //   'dark-s_ny.jpg', // -Y
+    //   'dark-s_pz.jpg', // +Z
+    //   'dark-s_nz.jpg', // -Z
+    // ];
+    // const urls = fileNames.map(name => baseUrl + name);
+    // console.log('Loading local skybox:', urls);
+    // loader.load(
+    //   urls,
+    //   (texture) => {
+    //     this.scene.background = texture;
+    //     // Optionally: set environment for reflections
+    //     // this.scene.environment = texture;
+    //   },
+    //   undefined,
+    //   (err) => {
+    //     console.error('Skybox loading error:', err);
+    //     // Fallback to sky blue if skybox fails
+    //     this.scene.background = new THREE.Color(0x87ceeb);
+    //   }
+    // );
   }
 
 
