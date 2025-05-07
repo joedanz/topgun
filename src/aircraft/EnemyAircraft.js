@@ -4,6 +4,7 @@ import Aircraft from './Aircraft';
 import { StateMachine } from '../ai/StateMachine';
 import { createEnemyAIStates } from '../ai/EnemyAIStates';
 import * as THREE from 'three';
+import FormationManager, { FORMATION_TYPES } from './FormationManager';
 
 export default class EnemyAircraft extends Aircraft {
   // --- Terrain-aware helper ---
@@ -73,7 +74,10 @@ export default class EnemyAircraft extends Aircraft {
     this._threatMemoryTimer = 0;
     this._threatMemoryDuration = 2.0; // seconds
 
-    super(config);
+    // --- Formation integration ---
+    this.formation = null; // Reference to FormationManager if in formation
+    this.formationIndex = -1; // Index in formation (0 = leader)
+
     this.isEnemy = true;
     this.stateDebug = 'patrol';
     this.patrolRoute = config.patrolRoute || [];
@@ -112,10 +116,48 @@ export default class EnemyAircraft extends Aircraft {
       if (this._threatMemoryTimer < 0) this._threatMemoryTimer = 0;
     }
 
+    // --- Formation integration ---
+    if (this.formation && this.formationIndex > 0) {
+      // Follower: let formation manager move us
+      // (Leader runs normal AI)
+      // Position and velocity are updated by FormationManager.update()
+      // Optionally, skip state machine update if in formation state
+      if (this.stateDebug === 'formation') {
+        // Only update physics, skip AI
+        super.update(dt);
+        return;
+      }
+    }
+
     // AI logic
     this.stateMachine.update(dt, gameContext);
     // Call base update for physics
     super.update(dt);
+  }
+
+  /**
+   * Assign this aircraft to a formation and set its index
+   */
+  joinFormation(formationManager, index) {
+    this.formation = formationManager;
+    this.formationIndex = index;
+    this.stateDebug = 'formation';
+  }
+
+  /**
+   * Leave the current formation
+   */
+  leaveFormation() {
+    this.formation = null;
+    this.formationIndex = -1;
+    this.stateDebug = 'patrol';
+  }
+
+  /**
+   * Respond to a formation command (stub)
+   */
+  onFormationCommand(cmd, params) {
+    // TODO: handle break, attack, regroup, etc.
   }
 
   // --- AI Helper Methods (stubs, to be implemented or connected) ---

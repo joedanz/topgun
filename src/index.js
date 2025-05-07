@@ -149,6 +149,7 @@ function getEnemyTargets() {
 // --- Enemy Spawning ---
 import EnemyAircraft from './aircraft/EnemyAircraft';
 import Aircraft from './aircraft/Aircraft';
+import FormationManager, { FORMATION_TYPES } from './aircraft/FormationManager';
 
 // Expose classes and libraries globally for browser console testing
 window.EnemyAircraft = EnemyAircraft;
@@ -156,7 +157,7 @@ window.THREE = THREE;
 
 function spawnEnemies(num = 3) {
   // Use the existing enemies array if present, otherwise start fresh
-  const enemies = window.enemies || [];
+  const enemies = [];
   for (let i = 0; i < num; ++i) {
     const enemy = new EnemyAircraft({
       type: 'MiG',
@@ -195,6 +196,15 @@ function spawnEnemies(num = 3) {
     }
     enemies.push(enemy);
   }
+  // --- Formation Integration ---
+  if (enemies.length > 1) {
+    const formation = new FormationManager(FORMATION_TYPES.V, enemies);
+    // Assign aircraft to formation
+    enemies.forEach((enemy, idx) => enemy.joinFormation(formation, idx));
+    window.enemyFormation = formation;
+  } else {
+    window.enemyFormation = null;
+  }
   window.enemies = enemies;
 }
 
@@ -229,8 +239,27 @@ function createPlayerAircraft() {
 // Create player aircraft before spawning enemies
 createPlayerAircraft();
 
-// Then spawn enemies
-spawnEnemies(3);
+// Then spawn enemies in a formation
+spawnEnemies(4);
+
+// --- Formation update in main loop ---
+function updateFormations(dt) {
+  if (window.enemyFormation) {
+    window.enemyFormation.update(dt);
+    // Optional: draw formation debug lines
+    if (window.DEBUG_AI_STATE && window.scene) {
+      window.enemyFormation.debugDraw(window.scene);
+    }
+  }
+}
+
+// Patch into main game loop (example, you may need to call this from your own loop)
+const _origGameLoop = window.gameLoop;
+window.gameLoop = function(dt) {
+  if (_origGameLoop) _origGameLoop(dt);
+  updateFormations(dt);
+};
+
 
 // --- Enemy AI update in main game loop ---
 function updateEnemies(dt, gameContext = {}) {
@@ -579,6 +608,7 @@ console.log('Top Gun Game: Entry point loaded!');
   menu.innerHTML = `
     <h4 style="margin-top:0">Debug Menu</h4>
     <button id="test-ai-engagement">AI Engagement Test</button><br><br>
+    <button id="test-formation">Test Formation</button><br><br>
     <label style="display:block;margin-bottom:4px">
       <input type="checkbox" id="debug-ai-aim" /> Show AI Aim Line
     </label>
@@ -592,6 +622,46 @@ console.log('Top Gun Game: Entry point loaded!');
   document.getElementById('debug-ai-aim').onchange = e => window.DEBUG_AI_AIM = e.target.checked;
   document.getElementById('debug-ai-stats').onchange = e => window.DEBUG_AI_STATS = e.target.checked;
   document.getElementById('test-ai-engagement').onclick = () => runAIEngagementTest();
+  document.getElementById('test-formation').onclick = () => runFormationTestScenario();
+
+  // --- Test Scenario: Formation Flight ---
+function runFormationTestScenario() {
+  // Remove previous enemies and formation
+  if (window.enemies && Array.isArray(window.enemies)) {
+    window.enemies.forEach(e => {
+      if (e.mesh && window.scene) window.scene.remove(e.mesh);
+    });
+  }
+  window.enemies = [];
+  window.enemyFormation = null;
+  // Spawn a visible V-formation of 4 enemies
+  spawnEnemies(4);
+  // Set all to formation state
+  window.enemies.forEach(e => e.stateDebug = 'formation');
+  // Put formation in easy-to-see position
+  if (window.enemyFormation && window.enemyFormation.leader) {
+    window.enemyFormation.leader.position.set(0, 100, -100);
+    window.enemyFormation.leader.mesh.position.copy(window.enemyFormation.leader.position);
+  }
+  // Animate formation for demo
+  let t = 0;
+  function animateFormation() {
+    t += 0.016;
+    if (window.enemyFormation && window.enemyFormation.leader) {
+      // Move leader in a slow circle
+      const r = 60;
+      window.enemyFormation.leader.position.set(
+        Math.cos(t) * r,
+        100,
+        Math.sin(t) * r - 100
+      );
+      window.enemyFormation.leader.mesh.position.copy(window.enemyFormation.leader.position);
+    }
+    requestAnimationFrame(animateFormation);
+  }
+  animateFormation();
+}
+window.runFormationTestScenario = runFormationTestScenario;
 
   // --- Test Scenario ---
   function runAIEngagementTest() {
