@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import ThreeEnvironment from './three/ThreeEnvironment';
+import { createDemoTerrainScene } from './environment/demoTerrainScene';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HUD } from './components/HUD';
@@ -26,6 +27,8 @@ const appDiv = document.getElementById('app');
 const threeEnv = new ThreeEnvironment(appDiv);
 // Expose the Three.js scene globally so enemies can be added from console
 window.scene = threeEnv.scene;
+// --- Terrain Demo Integration ---
+createDemoTerrainScene(threeEnv.renderer, threeEnv.scene, threeEnv.camera);
 
 // --- AI Line-of-Sight Obstacle Setup ---
 // Collect terrain and static obstacle meshes for AI LOS checks.
