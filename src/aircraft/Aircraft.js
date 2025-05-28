@@ -38,6 +38,7 @@ export default class Aircraft {
     this.countermeasureCooldown = 0;
     this.countermeasureTypeLast = null;
 
+    this.angularInput = { pitch: 0, roll: 0, yaw: 0 };
   }
 
   /**
@@ -226,10 +227,7 @@ export default class Aircraft {
    */
   applyRoll(amount) {
     if (this.state !== 'normal') return;
-    // Roll: rotate around local Z axis
-    const q = new THREE.Quaternion();
-    q.setFromAxisAngle(new THREE.Vector3(0, 0, -1), amount);
-    this.rotation.multiply(q);
+    this.angularInput.roll = amount;
   }
 
   /**
@@ -238,10 +236,7 @@ export default class Aircraft {
    */
   applyPitch(amount) {
     if (this.state !== 'normal') return;
-    // Pitch: rotate around local X axis
-    const q = new THREE.Quaternion();
-    q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), amount);
-    this.rotation.multiply(q);
+    this.angularInput.pitch = amount;
   }
 
   /**
@@ -250,10 +245,7 @@ export default class Aircraft {
    */
   applyYaw(amount) {
     if (this.state !== 'normal') return;
-    // Yaw: rotate around local Y axis
-    const q = new THREE.Quaternion();
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), amount);
-    this.rotation.multiply(q);
+    this.angularInput.yaw = amount;
   }
 
   /**

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import './HUD.css';
 
-export function HUD({ speed = 0, altitude = 0, currentWeapon = null, weapons = [], health = 100 }) {
+export function HUD({ speed = 0, altitude = 0, currentWeapon = null, weapons = [], health = 100, throttle = 0, pitchInput = 0, rollInput = 0, yawInput = 0 }) {
   return (
     <div className="hud-container">
       <SpeedDisplay speed={speed} />
@@ -20,6 +20,27 @@ export function HUD({ speed = 0, altitude = 0, currentWeapon = null, weapons = [
         )}
       </div>
       <HealthBar health={health} />
+      <ControlsDisplay 
+        throttle={throttle} 
+        pitchInput={pitchInput} 
+        rollInput={rollInput} 
+        yawInput={yawInput} 
+      />
+    </div>
+  );
+}
+
+// Add this new component function within src/components/HUD.js
+function ControlsDisplay({ throttle, pitchInput, rollInput, yawInput }) {
+  return (
+    <div className="hud-controls hud-block">
+      <span className="hud-label">CONTROLS</span>
+      <div className="hud-controls-values">
+        <span>T: {throttle.toFixed(2)}</span>
+        <span>P: {pitchInput.toFixed(2)}</span>
+        <span>R: {rollInput.toFixed(2)}</span>
+        <span>Y: {yawInput.toFixed(2)}</span>
+      </div>
     </div>
   );
 }

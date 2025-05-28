@@ -72,9 +72,25 @@ export class InputHandler {
 // Example configuration objects for control schemes
 export const ControlSchemes = {
   desktop: {
-    movement: ['W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'],
+    // Assuming 'movement' might be for ground controls or a different mode, or will be superseded.
+    // If W,A,S,D,Arrows are purely for flight now, the old 'movement' might be redundant for player aircraft.
+    movement: ['W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'], // Keep for now, address conflicts later if they arise in PlayerAircraft
     fire: ['Space'],
-    aim: ['MouseMove'],
+    aim: ['MouseMove'], // Typically for looking around or fine-tuning aim
+
+    // Flight Controls
+    THROTTLE_INCREASE: ['ShiftLeft'], // Use Left Shift for throttle up
+    THROTTLE_DECREASE: ['ControlLeft'], // Use Left Control for throttle down
+
+    PITCH_UP: ['ArrowDown'],      // ArrowDown for Pitch Up (pull stick back)
+    PITCH_DOWN: ['ArrowUp'],    // ArrowUp for Pitch Down (push stick forward)
+    ROLL_LEFT: ['ArrowLeft'],
+    ROLL_RIGHT: ['ArrowRight'],
+
+    YAW_LEFT: ['A'],
+    YAW_RIGHT: ['D'],
+    // Consider if 'Q' and 'E' are better if A/D are still used for strafing in 'movement'.
+    // For now, let's use A/D for yaw.
   },
   mobile: {
     movement: ['TouchJoystick'],

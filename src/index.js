@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { InputHandler, ControlSchemes } from './input/InputHandler'; // Added
+import PlayerAircraft from './aircraft/PlayerAircraft'; // Ensure this is the updated one
 import ThreeEnvironment from './three/ThreeEnvironment';
 import { createDemoTerrainScene } from './environment/demoTerrainScene';
 import React, { useEffect, useState } from 'react';
@@ -53,6 +55,10 @@ createDemoTerrainScene(threeEnv.renderer, threeEnv.scene, threeEnv.camera);
   window.sceneObstacles = obstacles;
   // You can push more meshes to window.sceneObstacles as needed after loading assets
 })();
+
+// Input Handling Setup
+window.inputHandler = new InputHandler(ControlSchemes);
+window.inputHandler.setActiveScheme('desktop'); // Or dynamically detect
 
 // Mount HUD overlay
 const hudDiv = document.createElement('div');
@@ -278,44 +284,80 @@ if (!window.updateFormations) {
 // Expose spawnEnemies globally for testing
 window.spawnEnemies = spawnEnemies;
 
-// Create player aircraft and expose it globally
-function createPlayerAircraft() {
-  // Use PlayerAircraft so .mesh exists
-  const PlayerAircraft = require('./aircraft/PlayerAircraft').default;
-  const player = new PlayerAircraft({
-    position: new THREE.Vector3(0, 12000, 0),
-    velocity: new THREE.Vector3(0, 0, 0)
+// Modified createPlayerAircraft function, renamed to createPlayerAircraftInstance
+function createPlayerAircraftInstance() { 
+  // Ensure inputHandler, physicsWorld, and ammoLib are available in this scope
+  // (e.g., passed as arguments, or accessed from window if they are global and ready)
+  // Accessing physicsWorld and ammoLib from window scope as they are set there in Ammo().then()
+  if (!window.inputHandler || !window.physicsWorld || !window.ammoLib) {
+    console.error("Cannot create PlayerAircraft: dependencies not ready (inputHandler, physicsWorld, or ammoLib).");
+    return null; 
+  }
+  const player = new PlayerAircraft({ // PlayerAircraft is already imported
+    inputHandler: window.inputHandler,
+    physicsWorld: window.physicsWorld, 
+    ammoLib: window.ammoLib,           
+    initialPosition: new THREE.Vector3(0, 12000, 0), // Or your desired start position
+    // mass, aircraftType, weapons can be default or customized here
   });
   
-  // Expose the player to the window for AI and debug scripts
-  window.playerAircraft = player;
-  
-  // Add to the scene if needed
-  if (window.scene) {
-    // Only add Object3D instances (player.mesh preferred)
-    if (player.mesh && player.mesh.isObject3D) {
-      window.scene.add(player.mesh);
-    } else {
-      console.error('Player aircraft .mesh is missing or not a THREE.Object3D:', player.mesh);
-    }
-  }
-  
+  // The player.mesh is already created in PlayerAircraft constructor.
+  // It should be added to the scene where playerAircraft is assigned to window.playerAircraft.
   return player;
 }
 
-// Create player aircraft before spawning enemies
-const playerAircraft = createPlayerAircraft();
-window.playerAircraft = playerAircraft;
+// Physics Setup
+window.ammoLib = null; // Will hold the Ammo library instance
+window.physicsWorld = null;
+
+// Initialize Ammo.js
+Ammo().then(function (AmmoLib) {
+  window.ammoLib = AmmoLib; // Store the library object
+  const collisionConfiguration = new AmmoLib.btDefaultCollisionConfiguration();
+  const dispatcher = new AmmoLib.btCollisionDispatcher(collisionConfiguration);
+  const overlappingPairCache = new AmmoLib.btDbvtBroadphase();
+  const solver = new AmmoLib.btSequentialImpulseConstraintSolver();
+  window.physicsWorld = new AmmoLib.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+  window.physicsWorld.setGravity(new AmmoLib.btVector3(0, -9.81, 0)); // Standard gravity
+
+  console.log('Ammo.js initialized, physics world created.');
+
+  // Now that physics is ready, create the player aircraft
+  const playerInstance = createPlayerAircraftInstance(); 
+  if (playerInstance) {
+    window.playerAircraft = playerInstance; // Expose for other systems (AI, HUD)
+    // Add player mesh to scene
+    if (window.playerAircraft.mesh && window.scene) {
+      window.scene.add(window.playerAircraft.mesh);
+    } else {
+      console.error('Player aircraft mesh not found or scene not available after creation.');
+    }
+
+    // --- Integrate PlayerPerformanceTracker with player events ---
+    // This needs to be inside the promise, after playerAircraft is created.
+    const origOnDestroyed = window.playerAircraft.onDestroyed;
+    window.playerAircraft.onDestroyed = function(options) {
+      PlayerPerformanceTracker.recordDeath();
+      if (typeof origOnDestroyed === 'function') origOnDestroyed.call(this, options);
+    };
+
+  } else {
+    console.error("Player aircraft could not be created.");
+  }
+  
+  // Spawn enemies (they might also need physics bodies later)
+  spawnEnemies(4); 
+
+}).catch(e => console.error("Error initializing Ammo.js:", e));
+
+// --- OLD Player Aircraft Creation - REMOVED ---
+// const playerAircraft = createPlayerAircraft(); 
+// window.playerAircraft = playerAircraft; 
 
 // --- Integrate PlayerPerformanceTracker with player events ---
-if (playerAircraft) {
-  // Example: hook into player death (assuming onDestroyed is called on player death)
-  const origOnDestroyed = playerAircraft.onDestroyed;
-  playerAircraft.onDestroyed = function(options) {
-    PlayerPerformanceTracker.recordDeath();
-    if (typeof origOnDestroyed === 'function') origOnDestroyed.call(this, options);
-  };
-}
+// MOVED inside Ammo().then() as playerAircraft is created there.
+// if (playerAircraft) {
+// }
 
 // Listen for kill events from EnemyAircraft (global patch for demo)
 if (window.EnemyAircraft) {
@@ -360,8 +402,8 @@ PlayerPerformanceTracker.onEvent(evt => {
   }
 });
 
-// Then spawn enemies in a formation
-spawnEnemies(4);
+// Then spawn enemies in a formation - MOVED INTO Ammo().then()
+// spawnEnemies(4); 
 
 // --- Formation update in main loop ---
 function updateFormations(dt) {
@@ -664,11 +706,16 @@ function OverlayRoot() {
         onSetLockedTarget={id => { window.lockedTargetId = id; }}
       />
       <HUD
-        speed={window.playerAircraft?.speed || 420}
+        speed={window.playerAircraft?.speed || 420} // Keep existing props
         altitude={window.playerAircraft?.position?.y || 12000}
         currentWeapon={window.playerAircraft?.getCurrentWeapon?.()}
         weapons={window.playerAircraft?.weapons || []}
         health={window.playerAircraft?.health ?? 87}
+        // Add the new props:
+        throttle={window.playerAircraft?.getThrottle?.() ?? 0}
+        pitchInput={window.playerAircraft?.getPitchInput?.() ?? 0}
+        rollInput={window.playerAircraft?.getRollInput?.() ?? 0}
+        yawInput={window.playerAircraft?.getYawInput?.() ?? 0}
       />
       <MissionObjectives
         objectives={[
@@ -705,12 +752,70 @@ function animate() {
   const now = performance.now();
   const dt = (now - lastFrameTime) / 1000;
   lastFrameTime = now;
-  updateEnemies(dt, { player: window.playerAircraft });
+
+  // 1. Process inputs and apply forces/torques to physics bodies
+  if (window.playerAircraft && typeof window.playerAircraft.processInputsAndApplyPhysics === 'function') {
+    window.playerAircraft.processInputsAndApplyPhysics(dt);
+  }
+  
+  // Update enemies (assuming they also might apply forces or have physics interactions)
+  // If enemies have physics, their force application should also happen before stepSimulation
+  updateEnemies(dt, { player: window.playerAircraft }); 
+  
+  // Update formations if any (ensure updateFormations is defined)
+  // If formations affect physics states directly, ensure this is before stepSimulation
+  if (typeof window.updateFormations === 'function') {
+    window.updateFormations(dt);
+  }
+
+  // Update targeting system (typically does not affect physics directly, but check dependencies)
+  if (typeof updateTargeting === 'function') { 
+      updateTargeting(dt);
+  }
+
+  // 2. Step the physics simulation
+  if (window.physicsWorld && window.ammoLib) { // physicsWorld is already on window
+    const maxSubSteps = 10;
+    const fixedTimeStep = 1.0 / 60.0; // Or your game's target frame rate
+    window.physicsWorld.stepSimulation(dt, maxSubSteps, fixedTimeStep);
+  }
+
+  // 3. Sync game object visuals from their physics states
+  if (window.playerAircraft && typeof window.playerAircraft.syncVisuals === 'function') {
+    window.playerAircraft.syncVisuals();
+  }
+  // If enemies have physics, they would also need a syncVisuals type of method called here.
+  
+  // Render the scene
   threeEnv.render();
 }
 animate();
 
-console.log('Top Gun Game: Entry point loaded!');
+// Raw Input Event Listeners
+window.addEventListener('keydown', (event) => {
+  if (window.inputHandler) {
+    // Note: ControlSchemes.desktop might not be fully available if this file loads before InputHandler.js populates it.
+    // However, ControlSchemes is imported directly.
+    // Consider if event.preventDefault() is needed, but be cautious.
+    // if (ControlSchemes.desktop && Object.values(ControlSchemes.desktop).flat().includes(event.key)) {
+      // event.preventDefault(); 
+    // }
+    window.inputHandler.handleRawInput(event.key, event.key, true); 
+  }
+});
+window.addEventListener('keyup', (event) => {
+  if (window.inputHandler) {
+    window.inputHandler.handleRawInput(event.key, event.key, false);
+  }
+});
+// Example for MouseMove if aim is active (can be added later if needed)
+// window.addEventListener('mousemove', (event) => {
+//   if (window.inputHandler && window.inputHandler.getAction('aim').active) {
+//     window.inputHandler.handleRawInput('MouseMove', 'mousemove', { x: event.clientX, y: event.clientY, movementX: event.movementX, movementY: event.movementY });
+//   }
+// });
+
+console.log('Top Gun Game: Entry point loaded with Physics and InputHandler integration!');
 
 // --- Debug/Dev Menu Integration ---
 (function setupDebugMenu() {

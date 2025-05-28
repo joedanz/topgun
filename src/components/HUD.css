@@ -149,3 +149,34 @@
 - Touch targets are at least 40px tall on mobile
 - Text-shadow for legibility on variable backgrounds
 */
+
+/* Styles for ControlsDisplay */
+.hud-controls {
+  /* position: absolute; */ /* Positioning via flexbox in .hud-container is likely better */
+  /* bottom: 10px; */
+  /* left: 50%; */
+  /* transform: translateX(-50%); */ 
+  /* The above absolute positioning might conflict with existing flex layout.
+     It's already a .hud-block, so it will align with other blocks.
+     If specific positioning is needed, it might require adjustments to .hud-container or a new wrapper.
+     For now, let's rely on .hud-block properties and add specifics for content. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* background-color: rgba(0,0,0,0.3); */ /* .hud-block already has a background */
+  padding: calc(8px * var(--ui-scale, 1)) calc(15px * var(--ui-scale, 1)); /* Adjusted padding based on .hud-block */
+  /* border-radius: 5px; */ /* .hud-block already has border-radius */
+}
+
+.hud-controls-values {
+  display: flex;
+  gap: calc(10px * var(--ui-scale, 1)); /* Scalable gap */
+  color: #a0e0ff; /* Light blue, similar to other HUD text, instead of bright green for now */
+  margin-top: calc(4px * var(--ui-scale, 1)); /* Space between label and values */
+}
+
+.hud-controls-values span {
+  min-width: calc(50px * var(--ui-scale, 1)); /* Scalable min-width */
+  text-align: right;
+  font-size: calc(1em * var(--ui-scale, 1)); /* Match general value font size if needed, or slightly smaller */
+}
