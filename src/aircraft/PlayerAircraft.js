@@ -38,6 +38,22 @@ export default class PlayerAircraft extends Aircraft {
   }
 
   processInputsAndApplyPhysics(dt) {
+    console.log('[PlayerAircraft] processInputsAndApplyPhysics, dt:', dt); // ADDED
+    if (!this.inputHandler) {
+      console.error('[PlayerAircraft] InputHandler not available!'); // ADDED
+      return;
+    }
+
+    // Log raw action states
+    console.log('[PlayerAircraft] THROTTLE_INCREASE active:', this.inputHandler.getAction('THROTTLE_INCREASE').active); // ADDED
+    console.log('[PlayerAircraft] THROTTLE_DECREASE active:', this.inputHandler.getAction('THROTTLE_DECREASE').active); // ADDED
+    console.log('[PlayerAircraft] PITCH_UP active:', this.inputHandler.getAction('PITCH_UP').active); // ADDED
+    console.log('[PlayerAircraft] PITCH_DOWN active:', this.inputHandler.getAction('PITCH_DOWN').active); // ADDED
+    console.log('[PlayerAircraft] ROLL_LEFT active:', this.inputHandler.getAction('ROLL_LEFT').active); // ADDED
+    console.log('[PlayerAircraft] ROLL_RIGHT active:', this.inputHandler.getAction('ROLL_RIGHT').active); // ADDED
+    console.log('[PlayerAircraft] YAW_LEFT active:', this.inputHandler.getAction('YAW_LEFT').active); // ADDED
+    console.log('[PlayerAircraft] YAW_RIGHT active:', this.inputHandler.getAction('YAW_RIGHT').active); // ADDED
+
     // Get Inputs for flight controls
     // Throttle
     if (this.inputHandler.getAction('THROTTLE_INCREASE').active) {
@@ -46,6 +62,7 @@ export default class PlayerAircraft extends Aircraft {
     if (this.inputHandler.getAction('THROTTLE_DECREASE').active) {
       this.throttle = Math.max(0, this.throttle - this.THROTTLE_STEP);
     }
+    console.log(`[PlayerAircraft] Calculated throttle: ${this.throttle}`); // ADDED
 
     // Pitch, Roll, Yaw Inputs
     let pitchInput = 0;
@@ -64,22 +81,33 @@ export default class PlayerAircraft extends Aircraft {
     this.angularInput.pitch = pitchInput * this.PITCH_RATE_SENSITIVITY;
     this.angularInput.roll = rollInput * this.ROLL_RATE_SENSITIVITY;
     this.angularInput.yaw = yawInput * this.YAW_RATE_SENSITIVITY;
+    console.log(`[PlayerAircraft] angularInput: P:${this.angularInput.pitch.toFixed(3)}, R:${this.angularInput.roll.toFixed(3)}, Y:${this.angularInput.yaw.toFixed(3)}`); // ADDED
 
     this.applyThrust(this.throttle * this.MAX_THRUST_FORCE);
+    console.log('[PlayerAircraft] Called applyThrust. Current acceleration:', this.acceleration); // ADDED
 
     // Physics Update
     // applyForcesAndTorques uses this.acceleration (from applyThrust) and this.angularInput
-    this.physics.applyForcesAndTorques();
+    if (this.physics) {
+      console.log('[PlayerAircraft] Calling this.physics.applyForcesAndTorques()'); // ADDED
+      this.physics.applyForcesAndTorques();
+    } else {
+      console.error('[PlayerAircraft] Physics not available in processInputsAndApplyPhysics!'); // ADDED
+    }
     
     // Do NOT call super.update(dt) as physics is handling movement.
     // syncFromPhysics and mesh updates are now in syncVisuals()
   }
 
   syncVisuals() {
+    console.log('[PlayerAircraft] syncVisuals called'); // ADDED
     if (this.physics) { // Check if physics is initialized
       this.physics.syncFromPhysics(); // Updates this.position and this.rotation
+      console.log(`[PlayerAircraft] Synced from physics. Position: X:${this.position.x.toFixed(2)}, Y:${this.position.y.toFixed(2)}, Z:${this.position.z.toFixed(2)}`); // ADDED
       this.mesh.position.copy(this.position);
       this.mesh.quaternion.copy(this.rotation);
+    } else {
+      console.error('[PlayerAircraft] Physics not available in syncVisuals!'); // ADDED
     }
   }
 

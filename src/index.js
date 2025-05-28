@@ -752,10 +752,16 @@ function animate() {
   const now = performance.now();
   const dt = (now - lastFrameTime) / 1000;
   lastFrameTime = now;
+  console.log(`[index.js] animate loop. dt: ${dt.toFixed(4)}`); // ADDED
 
   // 1. Process inputs and apply forces/torques to physics bodies
   if (window.playerAircraft && typeof window.playerAircraft.processInputsAndApplyPhysics === 'function') {
+    console.log('[index.js] Calling playerAircraft.processInputsAndApplyPhysics'); // ADDED
     window.playerAircraft.processInputsAndApplyPhysics(dt);
+  } else {
+    // ADDED block for logging
+    if (!window.playerAircraft) console.log('[index.js] window.playerAircraft is not defined.');
+    else if (typeof window.playerAircraft.processInputsAndApplyPhysics !== 'function') console.log('[index.js] playerAircraft.processInputsAndApplyPhysics is not a function.');
   }
   
   // Update enemies (assuming they also might apply forces or have physics interactions)
@@ -775,14 +781,24 @@ function animate() {
 
   // 2. Step the physics simulation
   if (window.physicsWorld && window.ammoLib) { // physicsWorld is already on window
+    console.log('[index.js] Calling physicsWorld.stepSimulation'); // ADDED
     const maxSubSteps = 10;
     const fixedTimeStep = 1.0 / 60.0; // Or your game's target frame rate
     window.physicsWorld.stepSimulation(dt, maxSubSteps, fixedTimeStep);
+  } else {
+    // ADDED block for logging
+    if(!window.physicsWorld) console.log('[index.js] window.physicsWorld is not defined.');
+    if(!window.ammoLib) console.log('[index.js] window.ammoLib is not defined.');
   }
 
   // 3. Sync game object visuals from their physics states
   if (window.playerAircraft && typeof window.playerAircraft.syncVisuals === 'function') {
+    console.log('[index.js] Calling playerAircraft.syncVisuals'); // ADDED
     window.playerAircraft.syncVisuals();
+  } else {
+    // ADDED block for logging
+    if (!window.playerAircraft) console.log('[index.js] window.playerAircraft is not defined for syncVisuals.');
+    else if (typeof window.playerAircraft.syncVisuals !== 'function') console.log('[index.js] playerAircraft.syncVisuals is not a function.');
   }
   // If enemies have physics, they would also need a syncVisuals type of method called here.
   
