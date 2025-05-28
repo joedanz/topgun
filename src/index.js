@@ -800,12 +800,12 @@ window.addEventListener('keydown', (event) => {
     // if (ControlSchemes.desktop && Object.values(ControlSchemes.desktop).flat().includes(event.key)) {
       // event.preventDefault(); 
     // }
-    window.inputHandler.handleRawInput(event.key, event.key, true); 
+    window.inputHandler.handleRawInput(event.key, true); 
   }
 });
 window.addEventListener('keyup', (event) => {
   if (window.inputHandler) {
-    window.inputHandler.handleRawInput(event.key, event.key, false);
+    window.inputHandler.handleRawInput(event.key, false);
   }
 });
 // Example for MouseMove if aim is active (can be added later if needed)
