@@ -38,5 +38,10 @@ module.exports = {
   ],
   resolve: {
     extensions: ['.js', '.jsx'],
+    fallback: {
+      "fs": false,
+      "path": false
+      // You might also see "os": false or require.resolve("os-browserify/browser") if 'os' becomes an issue later.
+    }
   },
 };
